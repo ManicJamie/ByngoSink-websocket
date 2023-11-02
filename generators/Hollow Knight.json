@@ -1,0 +1,21 @@
+{
+    "Item Randomizer": {
+        "type": "GenericGenerator",
+        "goals": [
+            {
+                "type": "BaseGoal",
+                "name": "2DreamBosses",
+                "description": "Defeat two Dream Bosses"
+            },
+            {
+                "type": "ExclusionGoal",
+                "name": "LostKin",
+                "description": "Defeat Broken Vessel",
+                "exclusions": [
+
+                ]
+            }
+
+        ]
+    }
+}
