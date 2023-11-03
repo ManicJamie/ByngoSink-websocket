@@ -4,6 +4,14 @@ import random
 
 from goal_types import *
 
+class FixedGenerator():
+    def __init__(self, name, goals=[]) -> None:
+        self.name = name
+        self.goals = goals
+    
+    def get(self, n):
+        return self.goals[:n]
+
 class BaseGenerator():
     def __init__(self, name, seed, generator={}) -> None:
         self.name = name
@@ -80,7 +88,7 @@ class TiebreakerMutexGenerator(BaseGenerator):
         
         return sample
 
-ALL = {}
+ALL: dict[str, dict[str, dict]] = {}
 for gamepath in os.listdir("generators"):
     with open(f"generators/{gamepath}") as f:
         ALL[os.path.splitext(gamepath)[0]] = json.load(f)

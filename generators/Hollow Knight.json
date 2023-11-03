@@ -1,16 +1,13 @@
 {
     "Item Randomizer": {
-        "type": "GenericGenerator",
+        "type": "TiebreakerMutexGenerator",
         "goals": [
             {
-                "type": "BaseGoal",
-                "name": "2DreamBosses",
-                "description": "Defeat two Dream Bosses"
+                "name": "Defeat 2 Dream Bosses"
             },
             {
                 "type": "ExclusionGoal",
-                "name": "LostKin",
-                "description": "Defeat Broken Vessel",
+                "name": "Defeat Broken Vessel",
                 "exclusions": [
 
                 ]

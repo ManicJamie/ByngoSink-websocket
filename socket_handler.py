@@ -2,72 +2,21 @@
 
 from websockets.server import serve, WebSocketServerProtocol
 import asyncio, uuid, json, logging
-from enum import IntEnum
+from enum import IntEnum, StrEnum
 import time
 
 import generators, boards, goal_types
+from rooms import *
 
 _log = logging.getLogger("bingosink")
-_log.setLevel(logging.INFO)
-
-class BoardEnum(IntEnum):
-    BINGO=0,
-    LOCKOUT=1,
-    EXPLORATION=2,
-    GTTOS=3,
-    ROGUELIKE=4
-
-    @classmethod
-    def all(cls):
-        return [int(member) for member in cls]
-
-class GameEnum(IntEnum):
-    HOLLOW_KNIGHT=0
-
-    @classmethod
-    def all(cls):
-        return [int(member) for member in cls]
-
-class Room():
-    class User():
-        def __init__(self, name, websocket) -> None:
-            self.name = name 
-            self.socket = websocket
-            self.id = str(uuid.uuid4())
-            self.connected = False
-
-        def change_socket(self, websocket):
-            self.socket = websocket
-    
-    def __init__(self, board, w, h, game, room) -> None:
-        self.board = BoardEnum(board)
-        self.width = int(w)
-        self.height = int(h)
-        self.game = GameEnum(game)
-        self.name = room
-        self.users: dict[str, Room.User] = {}
-        self.id = str(uuid.uuid4())
-        self.created = int(time.time())
-        self.touch()
-    
-    def add_user(self, user_name: str, socket) -> str:
-        user = Room.User(user_name, socket)
-        self.users[user.id] = user
-        user.connected = True
-        return user.id
-
-    def pop_user(self, user_id):
-        return self.users.pop(user_id)
-    
-    def touch(self):
-        self.touched = int(time.time())
+logging.getLogger().setLevel(logging.INFO)
 
 rooms: dict[str, Room] = {}
 
 async def process(websocket: WebSocketServerProtocol):
     async for received in websocket:
         try:
-            _log.info(f"{websocket.remote_address} | {received}")
+            logging.info(f"{websocket.remote_address} | {received}")
             data = json.loads(received)
             match data["verb"]:
                 case "LIST":
@@ -76,14 +25,17 @@ async def process(websocket: WebSocketServerProtocol):
                     await websocket.send(json.dumps(roomlist))
                 case "OPEN":
                     user_name = data["username"]
-                    room = Room(data["boardType"], data["width"], data["height"],
-                                 data["gameEnum"], data["roomName"])
+                    room = Room(data["board"],
+                                 data["game"], data["roomName"])
                     user_id = room.add_user(user_name, websocket)
                     rooms[room.id] = room
                     
                     await websocket.send(json.dumps({"verb": "OPENED", "roomId": room.id, "userId": user_id}))
                 case "JOIN":
-                    pass
+                    room = rooms[data["roomId"]]
+                    user_id = room.add_user(data["username"], websocket)
+
+                    await websocket.send(json.dumps({"verb": "JOINED", "userId": user_id}))
                 case "REJOIN":
                     user_id = data["userId"]
                     room_id = data["roomId"]
@@ -92,6 +44,13 @@ async def process(websocket: WebSocketServerProtocol):
                         await websocket.send(json.dumps({"verb": "REJOINED", "roomId": room.id, "userId": user_id}))
                 case "MARK":
                     pass
+                case "GET_GENERATORS":
+                    game = data["game"]
+                    gens = list(generators.ALL[game].keys())
+                    await websocket.send(json.dumps({"verb": "GENERATORS", "game": game, "generators": gens}))
+                case "GET_GAMES":
+                    games = list(generators.ALL.keys())
+                    await websocket.send(json.dumps({"verb": "GAMES", "games": games}))
         except Exception as e:
             await websocket.send(json.dumps({"verb": "ERROR", "message": str(e.args)}))
             raise e
