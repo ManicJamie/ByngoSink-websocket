@@ -1,6 +1,7 @@
 {
     "Normal": {
         "type": "BaseGenerator",
+        "small": true,
         "goals": [
             {
                 "name": "4 Deers"

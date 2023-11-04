@@ -14,8 +14,8 @@ def parse_goal(goal: dict) -> "T_GOAL":
     typestr = goal.pop("type", None)
     if typestr is None:
         # attempt inferral (WARN: WILL NOT CATCH COMPLEX SUBCLASSES, specify type in this case)
-        weighted = "weight" in dict.keys()
-        exclusion = "exclusions" in dict.keys()
+        weighted = "weight" in goal.keys()
+        exclusion = "exclusions" in goal.keys()
         if weighted and exclusion:
             goalType = WeightedExclusionGoal
         elif weighted:
@@ -33,7 +33,18 @@ def parse_goal(goal: dict) -> "T_GOAL":
 class BaseGoal():
     def __init__(self, name, **params) -> None:
         self.name = name
+        self.marks = set()
         self.__dict__.update(params)
+    
+    def mark(self, teamId):
+        if teamId in self.marks: return False
+        self.marks.add(teamId)
+        return True
+    
+    def unmark(self, teamId):
+        if teamId not in self.marks: return False
+        self.marks.remove(teamId)
+        return True
 
     def __str__(self) -> str:
         return self.name
