@@ -1,4 +1,4 @@
-import json
+import jsonc
 import os
 import random
 
@@ -37,7 +37,7 @@ class BaseGenerator():
 class MutexGenerator(BaseGenerator):
     def get(self, seed, n) -> list["T_GOAL"]:
         random.seed(seed)
-        available = self.goals
+        available = self.goals.copy()
         sample = []
         excludes: set[str] = set()
         for i in range(n):
@@ -62,7 +62,7 @@ class TiebreakerGenerator(BaseGenerator):
     def get(self, seed, n) -> list["T_GOAL"]:
         random.seed(seed)
         sample = []
-        available = self.goals
+        available = self.goals.copy()
         tiebreakers = self.tiebreakers
         for i in range(n):
             while True:
@@ -106,6 +106,8 @@ class TiebreakerMutexGenerator(TiebreakerGenerator):
         
         return sample
 
+#TODO: add weighted generators!
+
 def _create_gen(name, gendict: dict) -> Union[BaseGenerator, FixedGenerator]:
     typestr = gendict.pop("type")
     genType: type = globals()[typestr]
@@ -116,6 +118,7 @@ def get_generator(game_name, gen_name):
 
 ALL: dict[str, dict[str, BaseGenerator]] = {}
 for gamepath in os.listdir("generators"):
-    with open(f"generators/{gamepath}") as f:
+    if not gamepath.endswith(".jsonc") or gamepath.startswith("_"): continue
+    with open(f"generators/{gamepath}", encoding="utf-8") as f:
         game_name = os.path.splitext(gamepath)[0]
-        ALL[game_name] = {name:_create_gen(name, gendict | {"game": game_name}) for name, gendict in json.load(f).items()}
+        ALL[game_name] = {name:_create_gen(name, gendict | {"game": game_name}) for name, gendict in jsonc.load(f).items()}

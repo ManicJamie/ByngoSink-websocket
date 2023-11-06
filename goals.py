@@ -31,9 +31,10 @@ def parse_goal(goal: dict) -> "T_GOAL":
 #### Goal types
 
 class BaseGoal():
-    def __init__(self, name, **params) -> None:
+    def __init__(self, name, translations:dict[str, str]={}, **params) -> None:
         self.name = name
         self.marks = set()
+        self.translations = translations
         self.__dict__.update(params)
     
     def mark(self, teamId):

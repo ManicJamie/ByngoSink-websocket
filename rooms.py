@@ -44,6 +44,11 @@ class Room():
             self.id = str(uuid4())
             self.colour: str = colour
     
+    class Message():
+        def __init__(self, origin, content) -> None:
+            self.origin = origin
+            self.content = content
+    
     def __init__(self, name, game, generator_str, board_str, seed) -> None:
         self.id = str(uuid4())
         self.name = name

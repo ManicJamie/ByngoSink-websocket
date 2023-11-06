@@ -49,7 +49,7 @@ async def JOIN(websocket: WebSocketServerProtocol, data):
     room = rooms[room_id]
     user_id = room.add_user(data["username"], websocket)
 
-    await websocket.send(json.dumps({"verb": "JOINED", "userId": user_id, "boardMin": room.board.get_minimum_view()}))
+    await websocket.send(json.dumps({"verb": "JOINED", "userId": user_id, "roomName": room.name, "boardMin": room.board.get_minimum_view()}))
     await room.alert_player_changes()
 
 async def REJOIN(websocket: WebSocketServerProtocol, data):
@@ -64,7 +64,7 @@ async def REJOIN(websocket: WebSocketServerProtocol, data):
         return
     
     room.users[user_id].change_socket(websocket)
-    await websocket.send(json.dumps({"verb": "REJOINED", "boardMin": room.board.get_minimum_view()}))
+    await websocket.send(json.dumps({"verb": "REJOINED", "roomName": room.name, "boardMin": room.board.get_minimum_view()}))
     await room.alert_player_changes()
 
 async def EXIT(websocket: WebSocketServerProtocol, data):
@@ -78,6 +78,12 @@ async def EXIT(websocket: WebSocketServerProtocol, data):
     if user is not None:
         await room.alert_player_changes()
 
+async def CREATE_TEAM(websocket: WebSocketServerProtocol, data): pass
+async def JOIN_TEAM(websocket: WebSocketServerProtocol, data): pass
+async def A(websocket: WebSocketServerProtocol, data): pass
+async def A(websocket: WebSocketServerProtocol, data): pass
+async def A(websocket: WebSocketServerProtocol, data): pass
+
 HANDLERS = {"LIST": LIST,
             "OPEN": OPEN,
             "JOIN": JOIN,
@@ -85,7 +91,9 @@ HANDLERS = {"LIST": LIST,
             "EXIT": EXIT,
             "MARK": MARK,
             "GET_GENERATORS": GET_GENERATORS,
-            "GET_GAMES": GET_GAMES}
+            "GET_GAMES": GET_GAMES,
+            "CREATE_TEAM": CREATE_TEAM,
+            "JOIN_TEAM": JOIN_TEAM}
 
 async def process(websocket: WebSocketServerProtocol):
     _log.info(f"New websocket connected from {websocket.remote_address}")
