@@ -15,18 +15,18 @@ from goals import parse_goal, ExclusionGoal, TiebreakerGoal
 class FixedGenerator():
     def __init__(self, name, generator={}, **params) -> None:
         self.name = name
-        self.goals = generator["goals"] # This is just a list of strings here
+        self.goals = generator["goals"] # This is just a list of strings in this case (and this case only)
         self.game = generator["game"]
         self.__dict__.update(params)
     
-    def get(self, seed, n):
+    def get(self, seed, n) -> list["T_GOAL"]:
         return self.goals[:n]
 
 class BaseGenerator():
     def __init__(self, name, generator:dict={}, **params) -> None:
         self.name = name
-        self.goals: list["T_GOAL"] = [parse_goal(g) for g in generator.get("goals")]
-        self.small: bool = generator.get("small", False)
+        self.goals: dict[str, "T_GOAL"] = {gid:parse_goal(gid, g) for gid, g in generator.get("goals").items()}
+        self.count = len(self.goals)
         self.game = generator["game"]
         self.__dict__.update(params)
     
@@ -35,15 +35,16 @@ class BaseGenerator():
         return random.sample(self.goals, n)
 
 class MutexGenerator(BaseGenerator):
+    # TODO: switch to using dict exclusion
     def get(self, seed, n) -> list["T_GOAL"]:
         random.seed(seed)
-        available = self.goals.copy()
+        available = list(self.goals.values())
         sample = []
         excludes: set[str] = set()
         for i in range(n):
             while True:
                 choice = random.choice(available)
-                if choice.name in excludes:
+                if choice.id in excludes:
                     available.remove(choice)
                     continue
                 sample.append(choice)
@@ -59,10 +60,11 @@ class TiebreakerGenerator(BaseGenerator):
         self.tiebreakers: int = generator.get("tiebreakerMax", 0)
         super().__init__(name, generator)
     
+    # TODO: switch to using dict exclusion
     def get(self, seed, n) -> list["T_GOAL"]:
         random.seed(seed)
         sample = []
-        available = self.goals.copy()
+        available = list(self.goals.values())
         tiebreakers = self.tiebreakers
         for i in range(n):
             while True:
@@ -83,13 +85,13 @@ class TiebreakerMutexGenerator(TiebreakerGenerator):
     def get(self, seed, n) -> list["T_GOAL"]:
         random.seed(seed)
         sample = []
-        available = self.goals.copy()
+        available = list(self.goals.values())
         tiebreakers = self.tiebreakers
         excludes: set[str] = set()
         for i in range(n):
             while True:
                 choice = random.choice(available)
-                if choice.name in excludes:
+                if choice.id in excludes:
                     available.remove(choice)
                     continue
                 if isinstance(choice, TiebreakerGoal):

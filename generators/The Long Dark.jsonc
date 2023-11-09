@@ -1,83 +1,83 @@
 {
     "Normal": {
         "type": "BaseGenerator",
-        "small": true,
-        "goals": [
-            {
-                "name": "4 Deers"
+        "count": 25,
+        "goals": {
+            "4Deer": {
+                "name": "4 Deer"
             },
-            {
+            "BearBedroll": {
                 "name": "Bear bedroll"
             },
-            {
+            "BowCraft": {
                 "name": "Craft bow"
             },
-            {
+            "BearCoat": {
                 "name": "Bearcoat"
             },
-            {
+            "WolfCoat": {
                 "name": "Wolfcoat"
             },
-            {
+            "DeerBoots": {
                 "name": "Deer boots"
             },
-            {
+            "DeerPants": {
                 "name": "Deer pants"
             },
-            {
+            "MooseSatchel": {
                 "name": "Moose satchel"
             },
-            {
+            "Summit": {
                 "name": "Summit"
             },
-            {
-                "name": "Tech backpack"
+            "TechBackpack": {
+                "name": "Technical backpack"
             },
-            {
+            "50Cattails": {
                 "name": "50 Cattails"
             },
-            {
+            "SkillFire3": {
                 "name": "Firemaster 3"
             },
-            {
+            "SkillCooking3": {
                 "name": "Cooking 3"
             },
-            {
+            "5Fish": {
                 "name": "Catch 5 fish"
             },
-            {
+            "3Books": {
                 "name": "Read 3 books"
             },
-            {
+            "5Regions": {
                 "name": "Visit 5 main regions"
             },
-            {
+            "3StoneCaches": {
                 "name": "Create 3 stone caches"
             },
-            {
+            "AuroraWolf": {
                 "name": "Aurora Wolf"
             },
-            {
+            "AuroraBear": {
                 "name": "Aurora Bear"
             },
-            {
+            "3Timberwolves": {
                 "name": "3 Timberwolves"
             },
-            {
+            "5Notes": {
                 "name": "5 Notes"
             },
-            {
+            "BallisticVest": {
                 "name": "Ballistic Vest"
             },
-            {
+            "Sketchy": {
                 "name": "Kill Sketchy"
             },
-            {
+            "Scruffy": {
                 "name": "Kill Scruffy"
             },
-            {
+            "Cannery": {
                 "name": "Enter Last Resort Cannery"
             }
-        ]
+        }
     }
 }

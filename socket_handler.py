@@ -26,7 +26,7 @@ async def MARK(websocket: WebSocketServerProtocol, data):
 
 async def GET_GENERATORS(websocket: WebSocketServerProtocol, data):
     game = data["game"]
-    gens = [{"name": gen.name, "small": gen.small} for gen in generators.ALL[game].values()]
+    gens = [{"name": gen.name, "small": gen.count < 169} for gen in generators.ALL[game].values()]
     await websocket.send(json.dumps({"verb": "GENERATORS", "game": game, "generators": gens}))
 
 async def GET_GAMES(websocket: WebSocketServerProtocol, data):
@@ -78,9 +78,20 @@ async def EXIT(websocket: WebSocketServerProtocol, data):
     if user is not None:
         await room.alert_player_changes()
 
-async def CREATE_TEAM(websocket: WebSocketServerProtocol, data): pass
+async def CREATE_TEAM(websocket: WebSocketServerProtocol, data):
+    room_id = data["roomId"]
+    user_id = data["userId"]
+    color = data["color"]
+    if room_id not in rooms:
+        await websocket.send('{"verb": "NOTFOUND"}')
+        return
+    room = rooms[room_id]
+    if user_id not in room.users:
+        await websocket.send('{"verb": "NOAUTH"}')
+        return
+
 async def JOIN_TEAM(websocket: WebSocketServerProtocol, data): pass
-async def A(websocket: WebSocketServerProtocol, data): pass
+async def LEAVE_TEAM(websocket: WebSocketServerProtocol, data): pass
 async def A(websocket: WebSocketServerProtocol, data): pass
 async def A(websocket: WebSocketServerProtocol, data): pass
 

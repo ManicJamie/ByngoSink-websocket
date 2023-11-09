@@ -15,9 +15,9 @@ for genName, gen in gens.items():
     if "languages" not in gen: continue
     for lang in gen["languages"]:
         report[genName][lang] = []
-        for goal in gen["goals"]:
+        for goalid, goal in gen["goals"].items():
             if "translations" not in goal.keys() or lang not in goal["translations"]:
-                report[genName][lang].append(goal["name"])
+                report[genName][lang].append(f"{goalid} | {goal['name']}")
 
 with open(f"_report_{game}.json", "w", encoding="utf-8") as f:
     jsonc.dump(report, f, indent=4)

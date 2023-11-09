@@ -10,7 +10,7 @@ if TYPE_CHECKING:
                     "WeightedTiebreakerExclusionGoal",
                     "WeightedTiebreakerGoal"]
 
-def parse_goal(goal: dict) -> "T_GOAL":
+def parse_goal(id, goal: dict) -> "T_GOAL":
     typestr = goal.pop("type", None)
     if typestr is None:
         # attempt inferral (WARN: WILL NOT CATCH COMPLEX SUBCLASSES, specify type in this case)
@@ -26,12 +26,13 @@ def parse_goal(goal: dict) -> "T_GOAL":
             goalType = BaseGoal
     else:
         goalType: type = globals()[typestr]
-    return goalType(**goal)
+    return goalType(id=id, **goal)
 
 #### Goal types
 
 class BaseGoal():
-    def __init__(self, name, translations:dict[str, str]={}, **params) -> None:
+    def __init__(self, id, name, translations:dict[str, str]={}, **params) -> None:
+        self.id = id
         self.name = name
         self.marks = set()
         self.translations = translations

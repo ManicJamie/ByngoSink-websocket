@@ -43,6 +43,7 @@ class Room():
         def __init__(self, colour) -> None:
             self.id = str(uuid4())
             self.colour: str = colour
+            self.members = []
     
     class Message():
         def __init__(self, origin, content) -> None:
@@ -71,10 +72,12 @@ class Room():
     
     def generate_board(self, game, generator_str, board_str, seed):
         self.board = create_board(board_str, get_generator(game, generator_str), seed)
+        self.touch()
     
     async def alert_board_changes(self):
         for user in self.users.values():
-            await user.socket.send(json.dumps({"verb": "SHARE", "board": self.board.get_team_view(user.id)}))
+            if user.teamId is not None:
+                await user.socket.send(json.dumps({"verb": "UPDATE", "board": self.board.get_team_view(user.teamId)}))
     
     async def alert_player_changes(self):
         usersData = [user.view() for user in self.users.values()]

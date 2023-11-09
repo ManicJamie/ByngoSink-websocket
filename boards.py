@@ -16,12 +16,12 @@ class Board():
         self.marks: dict[str, set] = {} # {Teamid : {goals}}
     
     def get_minimum_view(self) -> dict:
-        """Provides a minimum amount of data on the board for display (used on join)"""
+        """Provides a minimum amount of data on the board for display (used for unteamed users)"""
         return {"type": self.name, "width": self.width, "height": self.height,
                 "game": self.game, "generatorName": self.generatorName}
     
     def get_team_view(self, teamId) -> dict:
-        """Provides a view on the board for a given user"""
+        """Provides a view on the board for a given user. -1 is a spectator."""
         return self.get_dict()
     
     def mark(self, index, teamid) -> bool:
