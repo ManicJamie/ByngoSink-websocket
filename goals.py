@@ -50,6 +50,9 @@ class BaseGoal():
 
     def __str__(self) -> str:
         return self.name
+
+    def get_repr(self) -> dict:
+        return {"name": self.name, "translations": self.translations}
     
 class WeightedGoal(BaseGoal):
     def __init__(self, weight, **params) -> None:
