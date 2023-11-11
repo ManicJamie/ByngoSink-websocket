@@ -2,7 +2,6 @@
 
 from websockets.server import serve, WebSocketServerProtocol
 import asyncio, uuid, json, logging
-from enum import IntEnum, StrEnum
 import time
 
 import generators, boards, goals
@@ -75,23 +74,69 @@ async def EXIT(websocket: WebSocketServerProtocol, data):
         return
     room = rooms[room_id]
     user = room.users.pop(user_id, None)
-    if user is not None:
-        await room.alert_player_changes()
+    if user is None:
+        await websocket.send('{"verb": "NOAUTH"}')
+        return
+    
+    for team in room.teams.values():
+        if team.id == user.teamId:
+            team.members.remove(user)
+            await room.alert_player_changes()
 
 async def CREATE_TEAM(websocket: WebSocketServerProtocol, data):
     room_id = data["roomId"]
-    user_id = data["userId"]
-    color = data["color"]
+    name = data["name"]
+    colour = data["colour"]
     if room_id not in rooms:
         await websocket.send('{"verb": "NOTFOUND"}')
         return
     room = rooms[room_id]
-    if user_id not in room.users:
+    user = room.get_user_by_socket(websocket)
+    if user is None:
         await websocket.send('{"verb": "NOAUTH"}')
         return
+    team = room.create_team(name, colour)
+    team.add_user(user.id)
+    user.teamId = team.id
+    await websocket.send(json.dumps({"verb": "TEAM_CREATED", "team_id": team.id}))
+    await room.alert_player_changes()
 
-async def JOIN_TEAM(websocket: WebSocketServerProtocol, data): pass
-async def LEAVE_TEAM(websocket: WebSocketServerProtocol, data): pass
+async def JOIN_TEAM(websocket: WebSocketServerProtocol, data):
+    room_id = data["roomId"]
+    team_id = data["teamId"]
+    if room_id not in rooms:
+        await websocket.send('{"verb": "NOTFOUND"}')
+        return
+    room = rooms[room_id]
+    user = room.get_user_by_socket(websocket)
+    if user is None:
+        await websocket.send('{"verb": "NOAUTH"}')
+        return
+    team = room.teams.get(team_id, None)
+    if team is None:
+        await websocket.send('{"verb": "NOTFOUND"}')
+        return
+    team.add_user(user)
+    await websocket.send('{"verb": "TEAM_JOINED"}')
+    await room.alert_player_changes()
+
+async def LEAVE_TEAM(websocket: WebSocketServerProtocol, data):
+    room_id = data["roomId"]
+    if room_id not in rooms:
+        await websocket.send('{"verb": "NOTFOUND"}')
+        return
+    room = rooms[room_id]
+    user = room.get_user_by_socket(websocket)
+    if user is None:
+        await websocket.send('{"verb": "NOAUTH"}')
+        return
+    for team in room.teams.values():
+        if team.id == user.teamId:
+            team.members.remove(user)
+            await websocket.send('{"verb": "TEAM_LEFT"}')
+            await room.alert_player_changes()
+            return
+
 async def A(websocket: WebSocketServerProtocol, data): pass
 async def A(websocket: WebSocketServerProtocol, data): pass
 
@@ -104,7 +149,19 @@ HANDLERS = {"LIST": LIST,
             "GET_GENERATORS": GET_GENERATORS,
             "GET_GAMES": GET_GAMES,
             "CREATE_TEAM": CREATE_TEAM,
-            "JOIN_TEAM": JOIN_TEAM}
+            "JOIN_TEAM": JOIN_TEAM,
+            "LEAVE_TEAM": LEAVE_TEAM,
+            }
+
+async def remove_websocket(websocket):
+    for room in rooms.values():
+        update = False
+        for user in room.users.values():
+            if user.socket == websocket:
+                user.connected = False
+                update = True
+        if update:
+            await room.alert_player_changes()
 
 async def process(websocket: WebSocketServerProtocol):
     _log.info(f"New websocket connected from {websocket.remote_address}")
@@ -119,6 +176,8 @@ async def process(websocket: WebSocketServerProtocol):
         except Exception as e:
             await websocket.send(json.dumps({"verb": "ERROR", "message": f"Server Error: {e.__repr__()}"}))
             raise e
+    _log.info(f"Websocket from {websocket.remote_address} disconnected")
+    await remove_websocket(websocket)
 
 async def main():
     async with serve(process, "localhost", 555):

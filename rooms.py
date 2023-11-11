@@ -26,7 +26,7 @@ COLOURS = {
 
 class Room():
     class User():
-        def __init__(self, name: str, websocket: WebSocketServerProtocol) -> None:
+        def __init__(self, name: str, websocket: WebSocketServerProtocol = None) -> None:
             self.name = name 
             self.socket = websocket
             self.id = str(uuid4())
@@ -40,10 +40,17 @@ class Room():
             return {"name": self.name, "connected": self.connected, "teamId": self.teamId}
     
     class Team():
-        def __init__(self, colour) -> None:
+        def __init__(self, name, colour) -> None:
             self.id = str(uuid4())
+            self.name = name
             self.colour: str = colour
-            self.members = []
+            self.members:list[Room.User] = []
+
+        def add_user(self, user): self.members.append(user)
+        def remove_user(self, user): self.members.remove(user)
+        
+        def view(self):
+            return {"id": self.id, "name": self.name, "colour": self.colour, "members": [m.view() for m in self.members]}
     
     class Message():
         def __init__(self, origin, content) -> None:
@@ -53,19 +60,23 @@ class Room():
     def __init__(self, name, game, generator_str, board_str, seed) -> None:
         self.id = str(uuid4())
         self.name = name
-        start_team = Room.Team("Red")
-        self.teams: dict[str, Room.Team] = {start_team.id: start_team}
+        self.teams: dict[str, Room.Team] = {}
         self.users: dict[str, Room.User] = {}
         if (seed == ""): seed = str(random())
         self.generate_board(game, generator_str, board_str, seed)
         self.created = int(time())
         self.touch()
     
-    def add_user(self, user_name: str, socket) -> str:
+    def add_user(self, user_name: str, socket=None) -> str:
         user = Room.User(user_name, socket)
         self.users[user.id] = user
         user.connected = True
         return user.id
+
+    def get_user_by_socket(self, websocket: WebSocketServerProtocol):
+        for user in self.users.values():
+            if websocket == user.socket: return user
+        return None
     
     def pop_user(self, user_id): return self.users.pop(user_id)
     def touch(self): self.touched = int(time())
@@ -73,6 +84,11 @@ class Room():
     def generate_board(self, game, generator_str, board_str, seed):
         self.board = create_board(board_str, get_generator(game, generator_str), seed)
         self.touch()
+    
+    def create_team(self, name, colour):
+        team = self.Team(name, colour)
+        self.teams[team.id] = team
+        return team
     
     async def alert_board_changes(self):
         for user in self.users.values():
@@ -85,7 +101,8 @@ class Room():
         for user in self.users.values():
             if user.socket is not None:
                 try:
-                    await user.socket.send(json.dumps({"verb": "MEMBERS", "members": usersData}))
+                    await user.socket.send(json.dumps({"verb": "MEMBERS", "members": usersData,
+                                                       "teams": {id:team.view() for id, team in self.teams.items()}}))
                 except ConnectionClosed as e:
                     logging.error(f"Connection closed! {e.__repr__()}")
                     user.socket = None

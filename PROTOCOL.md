@@ -21,7 +21,7 @@ GENERATORS <generators>
 OPENED <clientid> <boardinfo>
 JOINED <clientid> <boardinfo>
 REJOINED <boardinfo>
-MEMBERS <members>
+MEMBERS <members> <teams>
 UPDATE <boardinfo>
 NOAUTH
 ERROR <message>
