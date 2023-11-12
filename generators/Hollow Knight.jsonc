@@ -1,7 +1,6 @@
 {
     "Normal": {
         "type": "MutexGenerator",
-        "count": 129,
         "languages": {
             "cn": true
         },
@@ -1042,9 +1041,8 @@
     },
     "Item Randomizer": {
         "type": "TiebreakerMutexGenerator",
-        "count": 217,
         "languages": {
-            "jp": false,
+            "jp": true,
             "cn": false,
             "pt": false
         },
@@ -1526,8 +1524,8 @@
             "CrystalCrawler": {
                 "name": "Check the Crystal Crawler Journal Entry",
                 "translations": {
-                    "jp": "スイショウズリズリを倒す",
-                    "cn": "看水晶爬虫日记",
+                    "jp": "スイショウズリズリを倒す", // TODO: Inconsistent translation
+                    "cn": "看水晶爬虫日记", // TODO: Inconsistent translation
                     "pt": "Consiga um Rastejador de Cristal no Diário do Caçador"
                 }
             },
@@ -3212,18 +3210,23 @@
                 }
             },
             "Grubfather": {
-                "name": "Get all the Grubfather checks"
+                "name": "Get all the Grubfather checks",
+                "translations": {
+                    "jp": "芋虫報酬のアイテムをすべて入手する"
+                }
             },
             "Seer": {
-                "name": "Get all the Seer checks"
+                "name": "Get all the Seer checks",
+                "translations": {
+                    "jp": "エッセンス報酬のアイテムをすべて入手する"
+                }
             }
         }
     },
     "Item Randomizer: No Tiebreakers": {
         "type": "MutexGenerator",
-        "count": 213,
         "languages": {
-            "jp": false,
+            "jp": true,
             "cn": false,
             "pt": false
         },
@@ -3633,9 +3636,11 @@
                 }
             },
             "CrystalCrawler": {
-                "name": "Kill a Crystal Crawler",
+                "name": "Kill a Crystal Crawler", //TODO: update wording?
                 "translations": {
-                    "pt": "Consiga um Rastejador de Cristal no Diário do Caçador"
+                    "jp": "スイショウズリズリを倒す",
+                    "cn": "看水晶爬虫日记",
+                    "pt": "Consiga um Rastejador de Cristal no Diário do Caçador" //TODO: Inconsistent translation
                 }
             },
             "Devout": {
@@ -5294,18 +5299,23 @@
                 }
             },
             "Grubfather": {
-                "name": "Get all the Grubfather checks"
+                "name": "Get all the Grubfather checks",
+                "translations": {
+                    "jp": "芋虫報酬のアイテムをすべて入手する"
+                }
             },
             "Seer": {
-                "name": "Get all the Seer checks"
+                "name": "Get all the Seer checks",
+                "translations": {
+                    "jp": "エッセンス報酬のアイテムをすべて入手する"
+                }
             }
         }
     },
     "Item Randomizer: Cursed": {
         "type": "TiebreakerMutexGenerator",
-        "count": 204,
         "languages": {
-            "jp": false,
+            "jp": true,
             "cn": false,
             "pt": false
         },
@@ -5740,9 +5750,11 @@
                 }
             },
             "CrystalCrawler": {
-                "name": "Kill a Crystal Crawler",
+                "name": "Kill a Crystal Crawler", //TODO: update wording?
                 "translations": {
-                    "pt": "Consiga um Rastejador de Cristal no Diário do Caçador"
+                    "jp": "スイショウズリズリを倒す",
+                    "cn": "看水晶爬虫日记",
+                    "pt": "Consiga um Rastejador de Cristal no Diário do Caçador" //TODO: Inconsistent translation
                 }
             },
             "Devout": {
@@ -7290,10 +7302,16 @@
                 }
             },
             "Grubfather": {
-                "name": "Get all the Grubfather checks"
+                "name": "Get all the Grubfather checks",
+                "translations": {
+                    "jp": "芋虫報酬のアイテムをすべて入手する"
+                }
             },
             "Seer": {
-                "name": "Get all the Seer checks"
+                "name": "Get all the Seer checks",
+                "translations": {
+                    "jp": "エッセンス報酬のアイテムをすべて入手する"
+                }
             }
         }
     }
