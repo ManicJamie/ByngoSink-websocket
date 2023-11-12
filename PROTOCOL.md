@@ -12,7 +12,7 @@ CREATE_TEAM <roomid> <clientid> <color>
 JOIN_TEAM <roomid> <teamid>
 LEAVE_TEAM <roomid>
 SPECTATE <roomid>
-MARK <clientid> <goalid>
+MARK <roomid> <goalid>
 
 server messages:
 LISTED <rooms>
@@ -31,3 +31,4 @@ BADVERB
 TEAM_CREATED
 TEAM_JOINED
 TEAM_LEFT
+NOTEAM

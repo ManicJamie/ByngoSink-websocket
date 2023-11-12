@@ -20,9 +20,6 @@ async def LIST(websocket: WebSocketServerProtocol, data):
                 for rid, r in rooms.items()}
     await websocket.send(json.dumps({"verb": "LISTED", "list": roomlist}))
 
-async def MARK(websocket: WebSocketServerProtocol, data):
-    pass
-
 async def GET_GENERATORS(websocket: WebSocketServerProtocol, data):
     game = data["game"]
     gens = [{"name": gen.name, "small": gen.count < 169} for gen in generators.ALL[game].values()]
@@ -96,7 +93,7 @@ async def CREATE_TEAM(websocket: WebSocketServerProtocol, data):
         await websocket.send('{"verb": "NOAUTH"}')
         return
     team = room.create_team(name, colour)
-    team.add_user(user.id)
+    team.add_user(user)
     user.teamId = team.id
     await websocket.send(json.dumps({"verb": "TEAM_CREATED", "team_id": team.id}))
     await room.alert_player_changes()
@@ -137,6 +134,25 @@ async def LEAVE_TEAM(websocket: WebSocketServerProtocol, data):
             await room.alert_player_changes()
             return
 
+async def MARK(websocket: WebSocketServerProtocol, data):
+    room_id = data["roomId"]
+    goal_id = data["goalId"]
+    if room_id not in rooms:
+        await websocket.send('{"verb": "NOTFOUND"}')
+        return
+    room = rooms[room_id]
+    user = room.get_user_by_socket(websocket)
+    if user is None:
+        await websocket.send('{"verb": "NOAUTH"}')
+        return
+    if user.teamId is None:
+        await websocket.send('{"verb": "NOTEAM"}')
+        return
+    
+    room.board.mark(goal_id, user.teamId)
+    await websocket.send(json.dumps({"verb": "MARKED", "goalId": goal_id}))
+    await room.alert_board_changes()
+
 async def A(websocket: WebSocketServerProtocol, data): pass
 async def A(websocket: WebSocketServerProtocol, data): pass
 
@@ -175,7 +191,7 @@ async def process(websocket: WebSocketServerProtocol):
             await HANDLERS[data["verb"]](websocket, data)
         except Exception as e:
             await websocket.send(json.dumps({"verb": "ERROR", "message": f"Server Error: {e.__repr__()}"}))
-            raise e
+            _log.error(e, exc_info=True)
     _log.info(f"Websocket from {websocket.remote_address} disconnected")
     await remove_websocket(websocket)
 

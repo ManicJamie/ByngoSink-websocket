@@ -21,14 +21,15 @@ class Board():
                 "game": self.game, "generatorName": self.generatorName}
     
     def get_team_view(self, teamId) -> dict:
-        """Provides a view on the board for a given user. -1 is a spectator."""
-        return self.get_dict()
+        """Provides a view on the board for a given team."""
+        return self.get_full_view()
 
     def get_full_view(self) -> dict:
         """Provides a complete view on all goals and marks"""
         return {"type": self.name, "width": self.width, "height": self.height,
                 "game": self.game, "generatorName": self.generatorName,
-                "goals": {i:g.get_repr() for i, g in enumerate(self.goals)}, "marks": self.marks}
+                "goals": {i:g.get_repr() for i, g in enumerate(self.goals)},
+                "marks": {t:list(g) for t, g in self.marks.items()}}
     
     def mark(self, index, teamid) -> bool:
         if teamid not in self.marks: self.marks[teamid] = {index}
@@ -58,9 +59,9 @@ class Bingo(Board):
     def __init__(self, generator: "T_GENERATOR", seed) -> None:
         super().__init__(5, 5, generator, seed)
     
-    def get_minimum_view(self) -> dict:
-        """Non-hidden formats, minimum == full"""
-        return self.get_full_view()
+    """Non-hidden formats, minimum == full""" 
+    def get_minimum_view(self) -> dict: return self.get_full_view()
+    def get_team_view(self, teamId) -> dict: return self.get_full_view()
 
 class Lockout(Bingo):
     """Basic lockout bingo board"""
@@ -88,9 +89,9 @@ class Exploration(Board):
     def adjacent(self, i):
         pass
 
-    def get_minimum_view(self) -> dict:
-        """Non-hidden formats, minimum == full"""
-        return self.get_full_view()
+    """Non-hidden formats, minimum == full""" 
+    def get_minimum_view(self) -> dict: return self.get_full_view()
+    def get_team_view(self, teamId) -> dict: return self.get_full_view()
 
 ALIASES = {
     "Non-Lockout": Bingo,
