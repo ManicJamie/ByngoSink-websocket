@@ -1522,11 +1522,11 @@
                 }
             },
             "CrystalCrawler": {
-                "name": "Check the Crystal Crawler Journal Entry",
+                "name": "Kill a Crystal Crawler",
                 "translations": {
-                    "jp": "スイショウズリズリを倒す", // TODO: Inconsistent translation
-                    "cn": "看水晶爬虫日记", // TODO: Inconsistent translation
-                    "pt": "Consiga um Rastejador de Cristal no Diário do Caçador"
+                    "jp": "スイショウズリズリを倒す",
+                    "cn": "看水晶爬虫日记",
+                    "pt": "Consiga um Rastejador de Cristal no Diário do Caçador" //TODO: Inconsistent translation
                 }
             },
             "Devout": {
@@ -3636,7 +3636,7 @@
                 }
             },
             "CrystalCrawler": {
-                "name": "Kill a Crystal Crawler", //TODO: update wording?
+                "name": "Kill a Crystal Crawler",
                 "translations": {
                     "jp": "スイショウズリズリを倒す",
                     "cn": "看水晶爬虫日记",
@@ -5750,7 +5750,7 @@
                 }
             },
             "CrystalCrawler": {
-                "name": "Kill a Crystal Crawler", //TODO: update wording?
+                "name": "Kill a Crystal Crawler",
                 "translations": {
                     "jp": "スイショウズリズリを倒す",
                     "cn": "看水晶爬虫日记",
