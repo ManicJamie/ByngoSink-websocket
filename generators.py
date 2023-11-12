@@ -1,4 +1,4 @@
-import jsonc
+import pyjson5 as jsonc
 import os
 import random
 
