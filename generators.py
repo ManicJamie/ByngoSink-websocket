@@ -118,7 +118,7 @@ def _create_gen(name, gendict: dict) -> Union[BaseGenerator, FixedGenerator]:
 def get_generator(game_name, gen_name):
     return ALL[game_name][gen_name]
 
-ALL: dict[str, dict[str, BaseGenerator]] = {}
+ALL: dict[str, dict[str, "T_GENERATOR"]] = {}
 for gamepath in os.listdir("generators"):
     if not gamepath.endswith(".jsonc") or gamepath.startswith("_"): continue
     with open(f"generators/{gamepath}", encoding="utf-8") as f:
