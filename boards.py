@@ -31,7 +31,8 @@ class Board():
                 "goals": {i:g.get_repr() for i, g in enumerate(self.goals)},
                 "marks": {t:list(g) for t, g in self.marks.items()}}
     
-    def mark(self, index, teamid) -> bool:
+    def mark(self, index: int, teamid) -> bool:
+        index = int(index)
         if teamid not in self.marks: self.marks[teamid] = {index}
         elif index in self.marks[teamid]: return False
         else: self.marks[teamid].add(index)
@@ -81,22 +82,55 @@ class Lockout(Bingo):
         return True
 
 class Exploration(Board):
-    """13x13 board with marks hidden between teams and only adjacent goals displayed."""
+    """13x13 board with marks hidden between teams and only adjacent goals displayed. Center->Corner"""
     name = "Exploration"
+    base = {84}
     def __init__(self, generator: "T_GENERATOR", seed) -> None:
         super().__init__(13, 13, generator, seed)
     
-    def adjacent(self, i):
-        pass
+    def get_minimum_view(self) -> dict:
+        return {"type": self.name, "width": self.width, "height": self.height,
+                "game": self.game, "generatorName": self.generatorName,
+                "goals": {i:self.goals[i].get_repr() for i in self.base}}
 
-    """Non-hidden formats, minimum == full""" 
-    def get_minimum_view(self) -> dict: return self.get_full_view()
-    def get_team_view(self, teamId) -> dict: return self.get_full_view()
+    """Double blind marks (No other team marks seen), adjacent goals revealed"""
+    def get_team_view(self, teamId) -> dict: 
+        team_marks = self.marks.get(teamId, None)
+        overall_seen = self.base.copy()
+        for i in self.base:
+            overall_seen.update(self._recurse_seen_goals(i, team_marks, overall_seen))
+
+        return {"type": self.name, "width": self.width, "height": self.height,
+                "game": self.game, "generatorName": self.generatorName,
+                "goals": {i:self.goals[i].get_repr() for i in overall_seen},
+                "marks": {teamId:list(team_marks)}}
+
+    def _recurse_seen_goals(self, i, team_marks, seen:set):
+        if i in team_marks:
+            x = i % 13
+            y = i // 13
+            adj_xys = {(x - 1, y), (x + 1, y), (x, y + 1), (x, y - 1)}
+            to_check = set()
+            for xy in adj_xys:
+                if xy[0] >= 0 and xy[0] <= 12 and xy[1] >= 0 and xy[1] <= 12:
+                    index = xy[1] * 13 + xy[0]
+                    if index not in seen: to_check.add(index)
+            to_check.difference_update(seen) # don't check already seen values
+            seen.update(to_check)
+            for i in to_check:
+                self._recurse_seen_goals(i, team_marks, seen)
+        return seen
+
+class GTTOS(Exploration):
+    """13x13 board with marks hidden between teams and only adjacent goals displayed. Left->Right"""
+    name="Get To The Other Side"
+    base = {0, 13, 26, 39, 52, 65, 78, 91, 104, 117, 130, 143, 156}
 
 ALIASES = {
     "Non-Lockout": Bingo,
     "Lockout": Lockout,
-    "Exploration": Exploration
+    "Exploration": Exploration,
+    "GTTOS": GTTOS
 }
 
 def create_board(boardstr, generator: "T_GENERATOR", seed) -> Board:
