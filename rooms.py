@@ -93,7 +93,8 @@ class Room():
     async def alert_board_changes(self):
         for user in self.users.values():
             if user.teamId is not None:
-                await user.socket.send(json.dumps({"verb": "UPDATE", "board": self.board.get_team_view(user.teamId)}))
+                await user.socket.send(json.dumps({"verb": "UPDATE", "board": self.board.get_team_view(user.teamId),
+                                                   "teamColours": {id:team.colour for id, team in self.teams.items()}}))
     
     async def alert_player_changes(self):
         usersData = [user.view() for user in self.users.values()]

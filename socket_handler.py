@@ -7,10 +7,18 @@ import time
 import generators, boards, goals
 from rooms import *
 
-logging.basicConfig(level=logging.DEBUG, format='%(message)s')
 _log = logging.getLogger("bingosink")
+formatter = logging.Formatter(fmt=' %(name)s :: %(levelname)-8s :: %(message)s')
+
+streamHandler = logging.StreamHandler()
+streamHandler.setFormatter(formatter)
+_log.addHandler(streamHandler)
+
+fileHandler = logging.FileHandler("byngosink.log")
+fileHandler.setFormatter(formatter)
+_log.addHandler(fileHandler)
 _log.setLevel(logging.INFO)
-logging.getLogger("websockets.server").setLevel(logging.INFO)
+#logging.getLogger("websockets.server").setLevel(logging.INFO)
 
 rooms: dict[str, Room] = {}
 
@@ -45,7 +53,8 @@ async def JOIN(websocket: WebSocketServerProtocol, data):
     room = rooms[room_id]
     user_id = room.add_user(data["username"], websocket)
 
-    await websocket.send(json.dumps({"verb": "JOINED", "userId": user_id, "roomName": room.name, "boardMin": room.board.get_minimum_view()}))
+    await websocket.send(json.dumps({"verb": "JOINED", "userId": user_id, "roomName": room.name, "boardMin": room.board.get_minimum_view(),
+                                     "teamColours": {id:team.colour for id, team in room.teams.items()}}))
     await room.alert_player_changes()
 
 async def REJOIN(websocket: WebSocketServerProtocol, data):
@@ -60,7 +69,8 @@ async def REJOIN(websocket: WebSocketServerProtocol, data):
         return
     
     room.users[user_id].change_socket(websocket)
-    await websocket.send(json.dumps({"verb": "REJOINED", "roomName": room.name, "boardMin": room.board.get_minimum_view()}))
+    await websocket.send(json.dumps({"verb": "REJOINED", "roomName": room.name, "boardMin": room.board.get_team_view(room.users[user_id].teamId),
+                                     "teamColours": {id:team.colour for id, team in room.teams.items()}}))
     await room.alert_player_changes()
 
 async def EXIT(websocket: WebSocketServerProtocol, data):
@@ -92,9 +102,13 @@ async def CREATE_TEAM(websocket: WebSocketServerProtocol, data):
     if user is None:
         await websocket.send('{"verb": "NOAUTH"}')
         return
+    if user.teamId is not None: # If user is already in team, remove them from this team
+        room.teams[user.teamId].members.remove(user)
+
     team = room.create_team(name, colour)
     team.add_user(user)
     user.teamId = team.id
+
     await websocket.send(json.dumps({"verb": "TEAM_CREATED", "team_id": team.id}))
     await room.alert_player_changes()
 
@@ -113,7 +127,10 @@ async def JOIN_TEAM(websocket: WebSocketServerProtocol, data):
     if team is None:
         await websocket.send('{"verb": "NOTFOUND"}')
         return
+    if user.teamId is not None: # If user is already in team, remove them from this team
+        room.teams[user.teamId].members.remove(user)
     team.add_user(user)
+    user.teamId = team.id
     await websocket.send('{"verb": "TEAM_JOINED"}')
     await room.alert_player_changes()
 
@@ -183,7 +200,7 @@ async def process(websocket: WebSocketServerProtocol):
     _log.info(f"New websocket connected from {websocket.remote_address}")
     async for received in websocket:
         try:
-            _log.info(f"{websocket.remote_address} | {received}")
+            _log.info(f"{websocket.remote_address[0]} | {received}")
             data = json.loads(received)
             if data["verb"] not in HANDLERS:
                 _log.warning(f"Bad verb received | {data['verb']}")

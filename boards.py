@@ -95,7 +95,8 @@ class Exploration(Board):
 
     """Double blind marks (No other team marks seen), adjacent goals revealed"""
     def get_team_view(self, teamId) -> dict: 
-        team_marks = self.marks.get(teamId, None)
+        if teamId is None: return self.get_minimum_view()
+        team_marks = self.marks.get(teamId, set())
         overall_seen = self.base.copy()
         for i in self.base:
             overall_seen.update(self._recurse_seen_goals(i, team_marks, overall_seen))
