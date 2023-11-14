@@ -23,6 +23,14 @@ _log.setLevel(logging.INFO)
 
 class DecoratedWebsocket(WebSocketServerProtocol):
     """Provides outbound logging and utility methods"""
+    def set_room(self, room: Room, user: Room.User = None):
+        self.room = room
+        self.user = user
+    
+    def clear_self_from_room(self):
+        if self.user is not None:
+            self.user.socket = None
+
     def connection_open(self) -> None:
         return super().connection_open()
 
@@ -182,7 +190,7 @@ async def MARK(websocket: DecoratedWebsocket, data):
         await websocket.send('{"verb": "NOTEAM"}')
         return
     
-    room.board.mark(goal_id, user.teamId)
+    room.board.mark(int(goal_id), user.teamId)
     await websocket.send_json({"verb": "MARKED", "goalId": goal_id})
     await room.alert_board_changes()
 
