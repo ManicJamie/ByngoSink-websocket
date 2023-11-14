@@ -8,6 +8,7 @@ import generators, boards, goals
 from rooms import *
 
 _log = logging.getLogger("bingosink")
+_log.propagate = False
 formatter = logging.Formatter(fmt=' %(name)s :: %(levelname)-8s :: %(message)s')
 
 streamHandler = logging.StreamHandler()
@@ -20,32 +21,44 @@ _log.addHandler(fileHandler)
 _log.setLevel(logging.INFO)
 #logging.getLogger("websockets.server").setLevel(logging.INFO)
 
+class DecoratedWebsocket(WebSocketServerProtocol):
+    """Provides outbound logging and utility methods"""
+    def connection_open(self) -> None:
+        return super().connection_open()
+
+    async def send(self, message):
+        _log.info(f"OUT | {self.remote_address[0]} | {message}")
+        await super().send(message)
+    
+    async def send_json(self, data: dict):
+        await self.send(json.dumps(data))
+
 rooms: dict[str, Room] = {}
 
-async def LIST(websocket: WebSocketServerProtocol, data):
+async def LIST(websocket: DecoratedWebsocket, data):
     roomlist = {rid: {"name": r.name, "game": r.board.game, "board": r.board.name, 
                       "variant": r.board.generatorName, "count": len(r.users)}
                 for rid, r in rooms.items()}
-    await websocket.send(json.dumps({"verb": "LISTED", "list": roomlist}))
+    await websocket.send_json({"verb": "LISTED", "list": roomlist})
 
-async def GET_GENERATORS(websocket: WebSocketServerProtocol, data):
+async def GET_GENERATORS(websocket: DecoratedWebsocket, data):
     game = data["game"]
     gens = [{"name": gen.name, "small": gen.count < 169} for gen in generators.ALL[game].values()]
-    await websocket.send(json.dumps({"verb": "GENERATORS", "game": game, "generators": gens}))
+    await websocket.send_json({"verb": "GENERATORS", "game": game, "generators": gens})
 
-async def GET_GAMES(websocket: WebSocketServerProtocol, data):
+async def GET_GAMES(websocket: DecoratedWebsocket, data):
     games = list(generators.ALL.keys())
-    await websocket.send(json.dumps({"verb": "GAMES", "games": games}))
+    await websocket.send_json({"verb": "GAMES", "games": games})
 
-async def OPEN(websocket: WebSocketServerProtocol, data):
+async def OPEN(websocket: DecoratedWebsocket, data):
     user_name = data["username"]
     room = Room(data["roomName"], data["game"], data["generator"], data["board"], data["seed"])
     user_id = room.add_user(user_name, websocket)
     rooms[room.id] = room
     
-    await websocket.send(json.dumps({"verb": "OPENED", "roomId": room.id, "userId": user_id}))
+    await websocket.send_json({"verb": "OPENED", "roomId": room.id, "userId": user_id})
 
-async def JOIN(websocket: WebSocketServerProtocol, data):
+async def JOIN(websocket: DecoratedWebsocket, data):
     room_id = data["roomId"]
     if room_id not in rooms:
         await websocket.send('{"verb": "NOTFOUND"}')
@@ -53,11 +66,12 @@ async def JOIN(websocket: WebSocketServerProtocol, data):
     room = rooms[room_id]
     user_id = room.add_user(data["username"], websocket)
 
-    await websocket.send(json.dumps({"verb": "JOINED", "userId": user_id, "roomName": room.name, "boardMin": room.board.get_minimum_view(),
-                                     "teamColours": {id:team.colour for id, team in room.teams.items()}}))
+    await websocket.send_json({"verb": "JOINED", "userId": user_id, "roomName": room.name, 
+                               "boardMin": room.board.get_minimum_view(), 
+                               "teamColours": {id:team.colour for id, team in room.teams.items()}})
     await room.alert_player_changes()
 
-async def REJOIN(websocket: WebSocketServerProtocol, data):
+async def REJOIN(websocket: DecoratedWebsocket, data):
     user_id = data["userId"]
     room_id = data["roomId"]
     if room_id not in rooms:
@@ -69,11 +83,11 @@ async def REJOIN(websocket: WebSocketServerProtocol, data):
         return
     
     room.users[user_id].change_socket(websocket)
-    await websocket.send(json.dumps({"verb": "REJOINED", "roomName": room.name, "boardMin": room.board.get_team_view(room.users[user_id].teamId),
-                                     "teamColours": {id:team.colour for id, team in room.teams.items()}}))
+    await websocket.send_json({"verb": "REJOINED", "roomName": room.name, "boardMin": room.board.get_team_view(room.users[user_id].teamId),
+                                "teamColours": {id:team.colour for id, team in room.teams.items()}})
     await room.alert_player_changes()
 
-async def EXIT(websocket: WebSocketServerProtocol, data):
+async def EXIT(websocket: DecoratedWebsocket, data):
     user_id = data["userId"]
     room_id = data["roomId"]
     if room_id not in rooms:
@@ -90,7 +104,7 @@ async def EXIT(websocket: WebSocketServerProtocol, data):
             team.members.remove(user)
             await room.alert_player_changes()
 
-async def CREATE_TEAM(websocket: WebSocketServerProtocol, data):
+async def CREATE_TEAM(websocket: DecoratedWebsocket, data):
     room_id = data["roomId"]
     name = data["name"]
     colour = data["colour"]
@@ -109,10 +123,10 @@ async def CREATE_TEAM(websocket: WebSocketServerProtocol, data):
     team.add_user(user)
     user.teamId = team.id
 
-    await websocket.send(json.dumps({"verb": "TEAM_CREATED", "team_id": team.id}))
+    await websocket.send_json({"verb": "TEAM_CREATED", "team_id": team.id})
     await room.alert_player_changes()
 
-async def JOIN_TEAM(websocket: WebSocketServerProtocol, data):
+async def JOIN_TEAM(websocket: DecoratedWebsocket, data):
     room_id = data["roomId"]
     team_id = data["teamId"]
     if room_id not in rooms:
@@ -132,9 +146,11 @@ async def JOIN_TEAM(websocket: WebSocketServerProtocol, data):
     team.add_user(user)
     user.teamId = team.id
     await websocket.send('{"verb": "TEAM_JOINED"}')
+    await websocket.send_json({"verb": "UPDATE", "board": room.board.get_team_view(user.teamId),
+                               "teamColours": {id:team.colour for id, team in room.teams.items()}})
     await room.alert_player_changes()
 
-async def LEAVE_TEAM(websocket: WebSocketServerProtocol, data):
+async def LEAVE_TEAM(websocket: DecoratedWebsocket, data):
     room_id = data["roomId"]
     if room_id not in rooms:
         await websocket.send('{"verb": "NOTFOUND"}')
@@ -151,7 +167,7 @@ async def LEAVE_TEAM(websocket: WebSocketServerProtocol, data):
             await room.alert_player_changes()
             return
 
-async def MARK(websocket: WebSocketServerProtocol, data):
+async def MARK(websocket: DecoratedWebsocket, data):
     room_id = data["roomId"]
     goal_id = data["goalId"]
     if room_id not in rooms:
@@ -167,11 +183,8 @@ async def MARK(websocket: WebSocketServerProtocol, data):
         return
     
     room.board.mark(goal_id, user.teamId)
-    await websocket.send(json.dumps({"verb": "MARKED", "goalId": goal_id}))
+    await websocket.send_json({"verb": "MARKED", "goalId": goal_id})
     await room.alert_board_changes()
-
-async def A(websocket: WebSocketServerProtocol, data): pass
-async def A(websocket: WebSocketServerProtocol, data): pass
 
 HANDLERS = {"LIST": LIST,
             "OPEN": OPEN,
@@ -186,7 +199,7 @@ HANDLERS = {"LIST": LIST,
             "LEAVE_TEAM": LEAVE_TEAM,
             }
 
-async def remove_websocket(websocket):
+async def remove_websocket(websocket: DecoratedWebsocket):
     for room in rooms.values():
         update = False
         for user in room.users.values():
@@ -197,19 +210,20 @@ async def remove_websocket(websocket):
             await room.alert_player_changes()
 
 async def process(websocket: WebSocketServerProtocol):
-    _log.info(f"New websocket connected from {websocket.remote_address}")
+    websocket.__class__ = DecoratedWebsocket 
+    _log.info(f"CON | {websocket.remote_address[0]} | {websocket.remote_address[1]}")
     async for received in websocket:
         try:
-            _log.info(f"{websocket.remote_address[0]} | {received}")
+            _log.info(f"IN  | {websocket.remote_address[0]} | {received}")
             data = json.loads(received)
             if data["verb"] not in HANDLERS:
                 _log.warning(f"Bad verb received | {data['verb']}")
                 continue
             await HANDLERS[data["verb"]](websocket, data)
         except Exception as e:
-            await websocket.send(json.dumps({"verb": "ERROR", "message": f"Server Error: {e.__repr__()}"}))
+            await websocket.send_json({"verb": "ERROR", "message": f"Server Error: {e.__repr__()}"})
             _log.error(e, exc_info=True)
-    _log.info(f"Websocket from {websocket.remote_address} disconnected")
+    _log.info(f"DIS | {websocket.remote_address[0]} | {websocket.remote_address[1]}")
     await remove_websocket(websocket)
 
 async def main():

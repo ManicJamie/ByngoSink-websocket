@@ -1,15 +1,19 @@
 from random import random
 from uuid import uuid4
 from time import time
-from websockets import ConnectionClosed, WebSocketServerProtocol
+from websockets import ConnectionClosed
 import json, asyncio, logging
 
 from boards import create_board
 from generators import get_generator
 
 from typing import TYPE_CHECKING
+
 if TYPE_CHECKING:
     from generators import T_GENERATOR
+    from socket_handler import DecoratedWebsocket
+
+_log = logging.getLogger("bingosink")
 
 COLOURS = {
     "Pink": "#cc6e8f",
@@ -26,7 +30,7 @@ COLOURS = {
 
 class Room():
     class User():
-        def __init__(self, name: str, websocket: WebSocketServerProtocol = None) -> None:
+        def __init__(self, name: str, websocket: "DecoratedWebsocket" = None) -> None:
             self.name = name 
             self.socket = websocket
             self.id = str(uuid4())
@@ -73,7 +77,7 @@ class Room():
         user.connected = True
         return user.id
 
-    def get_user_by_socket(self, websocket: WebSocketServerProtocol):
+    def get_user_by_socket(self, websocket: "DecoratedWebsocket"):
         for user in self.users.values():
             if websocket == user.socket: return user
         return None
@@ -92,18 +96,18 @@ class Room():
     
     async def alert_board_changes(self):
         for user in self.users.values():
-            if user.teamId is not None:
-                await user.socket.send(json.dumps({"verb": "UPDATE", "board": self.board.get_team_view(user.teamId),
-                                                   "teamColours": {id:team.colour for id, team in self.teams.items()}}))
+            if user.socket is not None:
+                if user.socket.closed: user.socket = None
+                else:
+                    await user.socket.send_json({"verb": "UPDATE", "board": self.board.get_team_view(user.teamId), 
+                                                "teamColours": {id:team.colour for id, team in self.teams.items()}})
     
     async def alert_player_changes(self):
         usersData = [user.view() for user in self.users.values()]
 
         for user in self.users.values():
             if user.socket is not None:
-                try:
-                    await user.socket.send(json.dumps({"verb": "MEMBERS", "members": usersData,
-                                                       "teams": {id:team.view() for id, team in self.teams.items()}}))
-                except ConnectionClosed as e:
-                    logging.error(f"Connection closed! {e.__repr__()}")
-                    user.socket = None
+                if user.socket.closed: user.socket = None
+                else:
+                    await user.socket.send_json({"verb": "MEMBERS", "members": usersData,
+                                                 "teams": {id:team.view() for id, team in self.teams.items()}})
