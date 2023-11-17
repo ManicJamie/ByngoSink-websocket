@@ -9,7 +9,7 @@ from rooms import *
 
 _log = logging.getLogger("bingosink")
 _log.propagate = False
-formatter = logging.Formatter(fmt=' %(name)s :: %(levelname)-8s :: %(message)s')
+formatter = logging.Formatter(fmt='%(asctime)s : %(name)s : %(levelname)-8s :: %(message)s')
 
 streamHandler = logging.StreamHandler()
 streamHandler.setFormatter(formatter)
@@ -23,11 +23,10 @@ _log.setLevel(logging.INFO)
 
 class DecoratedWebsocket(WebSocketServerProtocol):
     """Provides outbound logging and utility methods"""
-    def set_room(self, room: Room, user: Room.User = None):
-        self.room = room
+    def set_user(self, user: Room.User = None):
         self.user = user
     
-    def clear_self_from_room(self):
+    def clear_self_from_room(self) -> bool:
         if self.user is not None:
             self.user.socket = None
 
@@ -131,7 +130,9 @@ async def CREATE_TEAM(websocket: DecoratedWebsocket, data):
     team.add_user(user)
     user.teamId = team.id
 
-    await websocket.send_json({"verb": "TEAM_CREATED", "team_id": team.id})
+    await websocket.send_json({"verb": "TEAM_CREATED", "team_id": team.id,
+                               "board": room.board.get_team_view(user.teamId), 
+                               "teamColours": {id:team.colour for id, team in room.teams.items()}})
     await room.alert_player_changes()
 
 async def JOIN_TEAM(websocket: DecoratedWebsocket, data):
@@ -153,8 +154,7 @@ async def JOIN_TEAM(websocket: DecoratedWebsocket, data):
         room.teams[user.teamId].members.remove(user)
     team.add_user(user)
     user.teamId = team.id
-    await websocket.send('{"verb": "TEAM_JOINED"}')
-    await websocket.send_json({"verb": "UPDATE", "board": room.board.get_team_view(user.teamId),
+    await websocket.send_json({"verb": "TEAM_JOINED", "board": room.board.get_team_view(user.teamId), 
                                "teamColours": {id:team.colour for id, team in room.teams.items()}})
     await room.alert_player_changes()
 
@@ -212,7 +212,7 @@ async def remove_websocket(websocket: DecoratedWebsocket):
         update = False
         for user in room.users.values():
             if user.socket == websocket:
-                user.connected = False
+                user.socket = None
                 update = True
         if update:
             await room.alert_player_changes()

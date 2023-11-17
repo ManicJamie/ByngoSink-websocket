@@ -31,17 +31,20 @@ COLOURS = {
 class Room():
     class User():
         def __init__(self, name: str, websocket: "DecoratedWebsocket" = None) -> None:
+            self.id = str(uuid4())
             self.name = name 
             self.socket = websocket
-            self.id = str(uuid4())
-            self.connected = False
+            self._set_websocket(websocket)
             self.teamId = None
+        
+        def _set_websocket(self, websocket: "DecoratedWebsocket"):
+            websocket.set_user(self)
 
-        def change_socket(self, websocket):
+        def change_socket(self, websocket: "DecoratedWebsocket"):
             self.socket = websocket
         
         def view(self):
-            return {"name": self.name, "connected": self.connected, "teamId": self.teamId}
+            return {"name": self.name, "connected": self.socket is not None, "teamId": self.teamId}
     
     class Team():
         def __init__(self, name, colour) -> None:
@@ -74,7 +77,6 @@ class Room():
     def add_user(self, user_name: str, socket=None) -> str:
         user = Room.User(user_name, socket)
         self.users[user.id] = user
-        user.connected = True
         return user.id
 
     def get_user_by_socket(self, websocket: "DecoratedWebsocket"):
