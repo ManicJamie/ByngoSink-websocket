@@ -1,8 +1,11 @@
 #!/usr/bin/env python
 
+import pathlib
+from typing import Optional
 from websockets.server import serve, WebSocketServerProtocol
 import asyncio, uuid, json, logging
 import time
+import ssl
 
 import generators, boards, goals
 from rooms import *
@@ -29,9 +32,8 @@ class DecoratedWebsocket(WebSocketServerProtocol):
     def clear_self_from_room(self) -> bool:
         if self.user is not None:
             self.user.socket = None
-
-    def connection_open(self) -> None:
-        return super().connection_open()
+            return True
+        return False
 
     async def send(self, message):
         _log.info(f"OUT | {self.remote_address[0]} | {message}")
@@ -217,8 +219,8 @@ async def remove_websocket(websocket: DecoratedWebsocket):
         if update:
             await room.alert_player_changes()
 
-async def process(websocket: WebSocketServerProtocol):
-    websocket.__class__ = DecoratedWebsocket 
+async def process(websocket: DecoratedWebsocket): 
+    websocket.__class__ = DecoratedWebsocket # Websocket is passed as a WebSocketClientProtocol, but upgraded
     _log.info(f"CON | {websocket.remote_address[0]} | {websocket.remote_address[1]}")
     async for received in websocket:
         try:
@@ -232,10 +234,14 @@ async def process(websocket: WebSocketServerProtocol):
             await websocket.send_json({"verb": "ERROR", "message": f"Server Error: {e.__repr__()}"})
             _log.error(e, exc_info=True)
     _log.info(f"DIS | {websocket.remote_address[0]} | {websocket.remote_address[1]}")
+    websocket.clear_self_from_room()
     await remove_websocket(websocket)
 
+ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+ssl_context.load_cert_chain("cert.pem", "cert.pem")
+
 async def main():
-    async with serve(process, "localhost", 555):
+    async with serve(process, "localhost", 555, ssl=ssl_context):
         await asyncio.Future() # Run forever
 
 if __name__ == "__main__":

@@ -34,14 +34,12 @@ class Room():
             self.id = str(uuid4())
             self.name = name 
             self.socket = websocket
-            self._set_websocket(websocket)
-            self.teamId = None
-        
-        def _set_websocket(self, websocket: "DecoratedWebsocket"):
             websocket.set_user(self)
+            self.teamId = None
 
         def change_socket(self, websocket: "DecoratedWebsocket"):
             self.socket = websocket
+            websocket.set_user(self)
         
         def view(self):
             return {"name": self.name, "connected": self.socket is not None, "teamId": self.teamId}
