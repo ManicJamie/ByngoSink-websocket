@@ -244,7 +244,7 @@ ssl_context = ssl.create_default_context()
 ssl_context.load_cert_chain(FULL_CHAIN, PRIV_KEY)
 
 async def main():
-    async with serve(process, "localhost", 555, ssl=ssl_context):
+    async with serve(process, "0.0.0.0", 555, ssl=ssl_context):
         await asyncio.Future() # Run forever
 
 if __name__ == "__main__":
