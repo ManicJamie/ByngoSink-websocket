@@ -225,10 +225,11 @@ async def remove_websocket(websocket: DecoratedWebsocket):
 
 async def process(websocket: DecoratedWebsocket): 
     websocket.__class__ = DecoratedWebsocket # Websocket is passed as a WebSocketClientProtocol, but upgraded
-    _log.info(f"CON | {websocket.remote_address[0]}")
+    addr = websocket.remote_address[0]
+    _log.info(f"CON | {addr}")
     async for received in websocket:
         try:
-            _log.info(f"IN  | {websocket.remote_address[0]} | {received}")
+            _log.info(f"IN  | {addr} | {received}")
             data = json.loads(received)
             if data["verb"] not in HANDLERS:
                 _log.warning(f"Bad verb received | {data['verb']}")
@@ -238,7 +239,7 @@ async def process(websocket: DecoratedWebsocket):
             await websocket.send_json({"verb": "ERROR", "message": f"Server Error: {e.__repr__()}"})
             _log.error(e, exc_info=True)
     
-    _log.info(f"DIS | {websocket.remote_address[0]}")
+    _log.info(f"DIS | {addr}")
     exitRoom = websocket.clear_self_from_room()
     if exitRoom is not None: await exitRoom.alert_player_changes()
 
