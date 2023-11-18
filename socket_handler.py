@@ -10,6 +10,9 @@ import ssl
 import generators, boards, goals
 from rooms import *
 
+FULL_CHAIN = "/etc/letsencrypt/live/byngosink-ws.manicjamie.com/fullchain.pem"
+PRIV_KEY = "/etc/letsencrypt/live/byngosink-ws.manicjamie.com/privkey.pem"
+
 _log = logging.getLogger("bingosink")
 _log.propagate = False
 formatter = logging.Formatter(fmt='%(asctime)s : %(name)s : %(levelname)-8s :: %(message)s')
@@ -237,8 +240,8 @@ async def process(websocket: DecoratedWebsocket):
     websocket.clear_self_from_room()
     await remove_websocket(websocket)
 
-ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
-ssl_context.load_cert_chain("fullchain.pem", "key.pem")
+ssl_context = ssl.create_default_context()
+ssl_context.load_cert_chain(FULL_CHAIN, PRIV_KEY)
 
 async def main():
     async with serve(process, "localhost", 555, ssl=ssl_context):
