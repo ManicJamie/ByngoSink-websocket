@@ -238,7 +238,7 @@ async def process(websocket: DecoratedWebsocket):
     await remove_websocket(websocket)
 
 ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
-ssl_context.load_cert_chain("cert.pem", "cert.pem")
+ssl_context.load_cert_chain("fullchain.pem", "key.pem")
 
 async def main():
     async with serve(process, "localhost", 555, ssl=ssl_context):
