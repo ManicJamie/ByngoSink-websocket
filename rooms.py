@@ -30,10 +30,11 @@ COLOURS = {
 
 class Room():
     class User():
-        def __init__(self, name: str, websocket: "DecoratedWebsocket" = None) -> None:
+        def __init__(self, name: str, room, websocket: "DecoratedWebsocket" = None) -> None:
             self.id = str(uuid4())
             self.name = name 
             self.socket = websocket
+            self.room = room
             websocket.set_user(self)
             self.teamId = None
 
@@ -73,7 +74,7 @@ class Room():
         self.touch()
     
     def add_user(self, user_name: str, socket=None) -> str:
-        user = Room.User(user_name, socket)
+        user = Room.User(user_name, self, socket)
         self.users[user.id] = user
         return user.id
 

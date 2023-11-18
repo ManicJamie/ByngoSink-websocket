@@ -32,11 +32,12 @@ class DecoratedWebsocket(WebSocketServerProtocol):
     def set_user(self, user: Room.User = None):
         self.user = user
     
-    def clear_self_from_room(self) -> bool:
+    def clear_self_from_room(self) -> Optional[Room]:
         if self.user is not None:
+            room = self.user.room
             self.user.socket = None
-            return True
-        return False
+            return room
+        return None
 
     async def send(self, message):
         _log.info(f"OUT | {self.remote_address[0]} | {message}")
@@ -224,7 +225,7 @@ async def remove_websocket(websocket: DecoratedWebsocket):
 
 async def process(websocket: DecoratedWebsocket): 
     websocket.__class__ = DecoratedWebsocket # Websocket is passed as a WebSocketClientProtocol, but upgraded
-    _log.info(f"CON | {websocket.remote_address[0]} | {websocket.remote_address[1]}")
+    _log.info(f"CON | {websocket.remote_address[0]}")
     async for received in websocket:
         try:
             _log.info(f"IN  | {websocket.remote_address[0]} | {received}")
@@ -236,12 +237,18 @@ async def process(websocket: DecoratedWebsocket):
         except Exception as e:
             await websocket.send_json({"verb": "ERROR", "message": f"Server Error: {e.__repr__()}"})
             _log.error(e, exc_info=True)
-    _log.info(f"DIS | {websocket.remote_address[0]} | {websocket.remote_address[1]}")
-    websocket.clear_self_from_room()
-    await remove_websocket(websocket)
+    
+    _log.info(f"DIS | {websocket.remote_address[0]}")
+    exitRoom = websocket.clear_self_from_room()
+    if exitRoom is not None: await exitRoom.alert_player_changes()
 
-ssl_context = ssl.create_default_context()
-ssl_context.load_cert_chain(FULL_CHAIN, PRIV_KEY)
+DO_SSL = True # Set false to disable TLS (don't in a deployment context!)
+
+if DO_SSL:
+    ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLSv1_2)
+    ssl_context.load_cert_chain(FULL_CHAIN, PRIV_KEY)
+else:
+    ssl_context = None
 
 async def main():
     async with serve(process, "0.0.0.0", 555, ssl=ssl_context):
