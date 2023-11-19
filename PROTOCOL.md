@@ -13,6 +13,7 @@ JOIN_TEAM <roomid> <teamid>
 LEAVE_TEAM <roomid>
 SPECTATE <roomid>
 MARK <roomid> <goalid>
+UNMARK <roomid> <goalid>
 
 server messages:
 LISTED <rooms>
@@ -23,6 +24,8 @@ JOINED <clientid> <boardinfo>
 REJOINED <boardinfo>
 MEMBERS <members> <teams>
 UPDATE <boardinfo>
+MARKED <goalId>
+UNMARKED <goalId>
 NOAUTH
 ERROR <message>
 MESSAGE <source> <message>
