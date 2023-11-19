@@ -95,9 +95,10 @@ async def REJOIN(websocket: DecoratedWebsocket, data):
         await websocket.send('{"verb": "NOAUTH"}')
         return
     
-    room.users[user_id].change_socket(websocket)
-    await websocket.send_json({"verb": "REJOINED", "roomName": room.name, "boardMin": room.board.get_team_view(room.users[user_id].teamId),
-                                "teamColours": {id:team.colour for id, team in room.teams.items()}})
+    user = room.users[user_id]
+    user.change_socket(websocket)
+    await websocket.send_json({"verb": "REJOINED", "roomName": room.name, "boardMin": room.board.get_team_view(user.teamId),
+                                "teamId": user.teamId or "", "teamColours": {id:team.colour for id, team in room.teams.items()}})
     await room.alert_player_changes()
 
 async def EXIT(websocket: DecoratedWebsocket, data):
@@ -136,7 +137,7 @@ async def CREATE_TEAM(websocket: DecoratedWebsocket, data):
     team.add_user(user)
     user.teamId = team.id
 
-    await websocket.send_json({"verb": "TEAM_CREATED", "team_id": team.id,
+    await websocket.send_json({"verb": "TEAM_CREATED", "teamId": team.id,
                                "board": room.board.get_team_view(user.teamId), 
                                "teamColours": {id:team.colour for id, team in room.teams.items()}})
     await room.alert_player_changes()
@@ -160,7 +161,7 @@ async def JOIN_TEAM(websocket: DecoratedWebsocket, data):
         room.teams[user.teamId].members.remove(user)
     team.add_user(user)
     user.teamId = team.id
-    await websocket.send_json({"verb": "TEAM_JOINED", "board": room.board.get_team_view(user.teamId), 
+    await websocket.send_json({"verb": "TEAM_JOINED", "board": room.board.get_team_view(user.teamId), "teamId": team.id,
                                "teamColours": {id:team.colour for id, team in room.teams.items()}})
     await room.alert_player_changes()
 
@@ -181,23 +182,40 @@ async def LEAVE_TEAM(websocket: DecoratedWebsocket, data):
             await room.alert_player_changes()
             return
 
-async def MARK(websocket: DecoratedWebsocket, data):
+async def get_goal_params(websocket: DecoratedWebsocket, data):
     room_id = data["roomId"]
     goal_id = data["goalId"]
     if room_id not in rooms:
         await websocket.send('{"verb": "NOTFOUND"}')
-        return
+        return None
     room = rooms[room_id]
     user = room.get_user_by_socket(websocket)
     if user is None:
         await websocket.send('{"verb": "NOAUTH"}')
-        return
+        return None
     if user.teamId is None:
         await websocket.send('{"verb": "NOTEAM"}')
-        return
+        return None
+
+    return (user, room, int(goal_id))
     
-    room.board.mark(int(goal_id), user.teamId)
+async def MARK(websocket: DecoratedWebsocket, data):
+    params = await get_goal_params(websocket, data)
+    if params is None: return
+    user, room, goal_id = params
+    
+    # TODO: Communicate failure in e.g. invasion, lockout, etc.
+    room.board.mark(goal_id, user.teamId)
     await websocket.send_json({"verb": "MARKED", "goalId": goal_id})
+    await room.alert_board_changes()
+    
+async def UNMARK(websocket: DecoratedWebsocket, data):
+    params = await get_goal_params(websocket, data)
+    if params is None: return
+    user, room, goal_id = params
+
+    room.board.unmark(int(goal_id), user.teamId)
+    await websocket.send_json({"verb": "UNMARKED", "goalId": goal_id})
     await room.alert_board_changes()
 
 HANDLERS = {"LIST": LIST,
@@ -206,6 +224,7 @@ HANDLERS = {"LIST": LIST,
             "REJOIN": REJOIN,
             "EXIT": EXIT,
             "MARK": MARK,
+            "UNMARK": UNMARK,
             "GET_GENERATORS": GET_GENERATORS,
             "GET_GAMES": GET_GAMES,
             "CREATE_TEAM": CREATE_TEAM,
