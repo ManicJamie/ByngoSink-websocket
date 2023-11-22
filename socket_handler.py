@@ -1,19 +1,17 @@
 #!/usr/bin/env python
 
-import pathlib
+import os
 from typing import Optional
 from websockets.server import serve, WebSocketServerProtocol
-import asyncio, uuid, json, logging
+import asyncio, json, logging
 import time
+from datetime import datetime
 import ssl
 
-import generators, boards, goals
+import generators, boards
 from rooms import *
 
-FULL_CHAIN = "/etc/letsencrypt/live/byngosink-ws.manicjamie.com/fullchain.pem"
-PRIV_KEY = "/etc/letsencrypt/live/byngosink-ws.manicjamie.com/privkey.pem"
-
-_log = logging.getLogger("bingosink")
+_log = logging.getLogger("byngosink")
 _log.propagate = False
 formatter = logging.Formatter(fmt='%(asctime)s : %(name)s : %(levelname)-8s :: %(message)s')
 
@@ -21,7 +19,9 @@ streamHandler = logging.StreamHandler()
 streamHandler.setFormatter(formatter)
 _log.addHandler(streamHandler)
 
-fileHandler = logging.FileHandler("byngosink.log")
+if not os.path.exists("./logs"): os.mkdir("./logs")
+
+fileHandler = logging.FileHandler(f"./logs/{datetime.utcnow().isoformat('_', 'seconds').replace(':', '-')}_byngosink.log", mode="w")
 fileHandler.setFormatter(formatter)
 _log.addHandler(fileHandler)
 _log.setLevel(logging.INFO)
@@ -33,11 +33,10 @@ class DecoratedWebsocket(WebSocketServerProtocol):
         self.user = user
     
     def clear_self_from_room(self) -> Optional[Room]:
-        if self.user is not None:
-            room = self.user.room
-            self.user.socket = None
-            return room
-        return None
+        if "user" not in self.__dict__: return None
+        room = self.user.room
+        self.user.socket = None
+        return room
 
     async def send(self, message):
         _log.info(f"OUT | {self.remote_address[0]} | {message}")
@@ -262,12 +261,15 @@ async def process(websocket: DecoratedWebsocket):
     exitRoom = websocket.clear_self_from_room()
     if exitRoom is not None: await exitRoom.alert_player_changes()
 
-DO_SSL = True # Set false to disable TLS (don't in a deployment context!)
+CERTS_PATH = "/etc/letsencrypt/live/byngosink-ws.manicjamie.com"
+FULL_CHAIN = f"{CERTS_PATH}/fullchain.pem"
+PRIV_KEY = f"{CERTS_PATH}/privkey.pem"
 
-if DO_SSL:
+if os.path.exists(FULL_CHAIN) and os.path.exists(PRIV_KEY): # Do SSL if the certificates exist, otherwise warn
     ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLSv1_2)
     ssl_context.load_cert_chain(FULL_CHAIN, PRIV_KEY)
 else:
+    _log.warning("Certs not found: SSL not enabled!")
     ssl_context = None
 
 async def main():

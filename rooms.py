@@ -13,7 +13,7 @@ if TYPE_CHECKING:
     from generators import T_GENERATOR
     from socket_handler import DecoratedWebsocket
 
-_log = logging.getLogger("bingosink")
+_log = logging.getLogger("byngosink")
 
 COLOURS = {
     "Pink": "#cc6e8f",
