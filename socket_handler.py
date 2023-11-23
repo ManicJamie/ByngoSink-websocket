@@ -55,7 +55,7 @@ async def LIST(websocket: DecoratedWebsocket, data):
 
 async def GET_GENERATORS(websocket: DecoratedWebsocket, data):
     game = data["game"]
-    gens = [{"name": gen.name, "small": gen.count < 169} for gen in generators.ALL[game].values()]
+    gens = [{"name": gen.name, "count": gen.count} for gen in generators.ALL[game].values()]
     await websocket.send_json({"verb": "GENERATORS", "game": game, "generators": gens})
 
 async def GET_GAMES(websocket: DecoratedWebsocket, data):
@@ -160,6 +160,7 @@ async def JOIN_TEAM(websocket: DecoratedWebsocket, data):
         room.teams[user.teamId].members.remove(user)
     team.add_user(user)
     user.teamId = team.id
+    user.spectate = False
     await websocket.send_json({"verb": "TEAM_JOINED", "board": room.board.get_team_view(user.teamId), "teamId": team.id,
                                "teamColours": {id:team.colour for id, team in room.teams.items()}})
     await room.alert_player_changes()
@@ -217,6 +218,27 @@ async def UNMARK(websocket: DecoratedWebsocket, data):
     await websocket.send_json({"verb": "UNMARKED", "goalId": goal_id})
     await room.alert_board_changes()
 
+async def SPECTATE(websocket: DecoratedWebsocket, data):
+    room_id = data.get("roomId", None)
+    if room_id not in rooms:
+        await websocket.send('{"verb": "NOTFOUND"}')
+        return None
+    room = rooms.get(room_id)
+    user = room.get_user_by_socket(websocket)
+    if user is None:
+        await websocket.send('{"verb": "NOAUTH"}')
+        return None
+    
+    room.spectators.add_user(user)
+    user.spectate = True
+    if user.teamId is not None:
+        room.teams[user.teamId].members.remove(user)
+        user.teamId = None
+    
+    await room.alert_player_changes()
+    await user.socket.send_json({"verb": "UPDATE", "board": room.board.get_full_view(), 
+                                "teamColours": {id:team.colour for id, team in room.teams.items()}})
+
 HANDLERS = {"LIST": LIST,
             "OPEN": OPEN,
             "JOIN": JOIN,
@@ -229,6 +251,7 @@ HANDLERS = {"LIST": LIST,
             "CREATE_TEAM": CREATE_TEAM,
             "JOIN_TEAM": JOIN_TEAM,
             "LEAVE_TEAM": LEAVE_TEAM,
+            "SPECTATE": SPECTATE,
             }
 
 async def remove_websocket(websocket: DecoratedWebsocket):
