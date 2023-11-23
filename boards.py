@@ -76,19 +76,12 @@ class Bingo(Board):
 class Lockout(Bingo):
     """Basic lockout bingo board"""
     name = "Lockout"
-    def mark(self, index: int, teamid: str) -> bool:
-        if teamid not in self.marks: 
-            self.marks[teamid] = {}
-
-        if index in self.marks[teamid]: 
+    def can_mark(self, index, teamid):
+        allmarked = set().union(*self.marks.values())
+        if index in allmarked:
             return False
-        else: 
-            print(*self.marks.values())
-            allmarked = set().union(*self.marks.values())
-            if index in allmarked: 
-                return False
-            self.marks[teamid].add(index)
-        return True
+        else:
+            return True
 
 class Exploration(Board):
     """13x13 board with marks hidden between teams and only adjacent goals displayed. 
@@ -102,7 +95,7 @@ class Exploration(Board):
         return {"type": self.name, "width": self.width, "height": self.height,
                 "game": self.game, "generatorName": self.generatorName,
                 "goals": {i:self.goals[i].get_repr() for i in self.base},
-                "base": self.base, "finals": self.finals}
+                "base": list(self.base), "finals": list(self.finals)}
 
     def _get_seen(self, teamId):
         team_marks = self.marks.get(teamId, set())
@@ -132,10 +125,6 @@ class Exploration(Board):
         seen = self._get_seen(teamid)
         if index not in seen: return False
         else: return True
-
-    def mark(self, index: int, teamid) -> bool:
-        if not self.can_mark(index, teamid): return False
-        else: return super().mark(index, teamid)
 
     def _recurse_seen_goals(self, i, team_marks, seen:set):
         if i in team_marks:

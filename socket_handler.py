@@ -206,9 +206,11 @@ async def MARK(websocket: DecoratedWebsocket, data):
     user, room, goal_id = params
     
     # TODO: Communicate failure in e.g. invasion, lockout, etc.
-    room.board.mark(goal_id, user.teamId)
-    await websocket.send_json({"verb": "MARKED", "goalId": goal_id})
-    await room.alert_board_changes()
+    if room.board.mark(goal_id, user.teamId):
+        await websocket.send_json({"verb": "MARKED", "goalId": goal_id})
+        await room.alert_board_changes()
+    else:
+        await websocket.send_json({"verb": "NOMARK", "goalId": goal_id})
     
 async def UNMARK(websocket: DecoratedWebsocket, data):
     params = await get_goal_params(websocket, data)
