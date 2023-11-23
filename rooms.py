@@ -1,13 +1,13 @@
 from random import random
 from uuid import uuid4
 from time import time
-from websockets import ConnectionClosed
+from collections import deque
 import json, asyncio, logging
 
 from boards import create_board
 from generators import get_generator
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 
 if TYPE_CHECKING:
     from generators import T_GENERATOR
@@ -59,18 +59,12 @@ class Room():
         def view(self):
             return {"id": self.id, "name": self.name, "colour": self.colour, "members": [m.view() for m in self.members]}
     
-    class Message():
-        def __init__(self, origin, content) -> None:
-            self.origin = origin
-            self.content = content
-    
     def __init__(self, name, game, generator_str, board_str, seed) -> None:
         self.id = str(uuid4())
         self.name = name
         self.spectators = Room.Team("spectator", "#FFFFFF")
         self.teams: dict[str, Room.Team] = {}
         self.users: dict[str, Room.User] = {}
-        if (seed == ""): seed = str(random())
         self.generate_board(game, generator_str, board_str, seed)
         self.created = int(time())
         self.touch()
@@ -85,10 +79,10 @@ class Room():
             if websocket == user.socket: return user
         return None
     
-    def pop_user(self, user_id): return self.users.pop(user_id)
     def touch(self): self.touched = int(time())
     
     def generate_board(self, game, generator_str, board_str, seed):
+        if (seed == ""): seed = str(random())
         self.board = create_board(board_str, get_generator(game, generator_str), seed)
         self.touch()
     
@@ -97,6 +91,12 @@ class Room():
         self.teams[team.id] = team
         return team
     
+    def connected_users(self) -> dict[str, User]:
+        out = {}
+        for k, u in self.users.items():
+            if u.socket is not None: out[k] = u
+        return out
+
     async def alert_board_changes(self):
         for user in self.users.values():
             if user.socket is not None:
@@ -112,9 +112,8 @@ class Room():
     async def alert_player_changes(self):
         usersData = [user.view() for user in self.users.values()]
 
-        for user in self.users.values():
-            if user.socket is not None:
-                if user.socket.closed: user.socket = None
-                else:
-                    await user.socket.send_json({"verb": "MEMBERS", "members": usersData,
-                                                 "teams": {id:team.view() for id, team in self.teams.items()}})
+        for user in self.connected_users().values():
+            if user.socket.closed: user.socket = None
+            else:
+                await user.socket.send_json({"verb": "MEMBERS", "members": usersData,
+                                                "teams": {id:team.view() for id, team in self.teams.items()}})

@@ -1,4 +1,5 @@
 from typing import TYPE_CHECKING
+
 if TYPE_CHECKING:
     from generators import T_GENERATOR
     from goals import T_GOAL
@@ -31,10 +32,19 @@ class Board():
                 "goals": {i:g.get_repr() for i, g in enumerate(self.goals)},
                 "marks": {t:list(g) for t, g in self.marks.items()}}
     
-    def mark(self, index: int, teamid) -> bool:
-        if teamid not in self.marks: self.marks[teamid] = {index}
-        elif index in self.marks[teamid]: return False
-        else: self.marks[teamid].add(index)
+    def can_mark(self, index, teamid):
+        """Checked on mark and occasionally as extra board view detail (eg invasion, roguelike)"""
+        return True
+    
+    def mark(self, index: int, teamid: str) -> bool:
+        if not self.can_mark(index, teamid): return False
+
+        if teamid not in self.marks: 
+            self.marks[teamid] = {index}
+        elif index in self.marks[teamid]: 
+            return False
+        else: 
+            self.marks[teamid].add(index)
         return True
     
     def unmark(self, index, teamid) -> bool:
@@ -85,14 +95,14 @@ class Exploration(Board):
     
     Center->Corner"""
     name = "Exploration"
-    base = {84}
-    def __init__(self, generator: "T_GENERATOR", seed) -> None:
-        super().__init__(13, 13, generator, seed)
+    base: set[int] = set()
+    finals: set[int] = set()
     
     def get_minimum_view(self) -> dict:
         return {"type": self.name, "width": self.width, "height": self.height,
                 "game": self.game, "generatorName": self.generatorName,
-                "goals": {i:self.goals[i].get_repr() for i in self.base}}
+                "goals": {i:self.goals[i].get_repr() for i in self.base},
+                "base": self.base, "finals": self.finals}
 
     def _get_seen(self, teamId):
         team_marks = self.marks.get(teamId, set())
@@ -108,6 +118,7 @@ class Exploration(Board):
         return {**self._get_base_team_view(teamId), **{"extras": {}}}
 
     def _get_base_team_view(self, teamId) -> dict:
+        """Double blind, adjacent revealed goals"""
         if teamId is None: return self.get_minimum_view()
         seen_goals = self._get_seen(teamId)
 
@@ -115,12 +126,16 @@ class Exploration(Board):
                 "game": self.game, "generatorName": self.generatorName,
                 "goals": {i:self.goals[i].get_repr() for i in seen_goals},
                 "marks": {teamId:list(self.marks.get(teamId, set()))}}
+    
+    def can_mark(self, index: int, teamid: str) -> bool:
+        if teamid is None: return False
+        seen = self._get_seen(teamid)
+        if index not in seen: return False
+        else: return True
 
     def mark(self, index: int, teamid) -> bool:
-        if teamid is None: return False
-        seen_goals = self._get_seen(teamid)
-        if index not in seen_goals: return False
-        return super().mark(index, teamid)
+        if not self.can_mark(index, teamid): return False
+        else: return super().mark(index, teamid)
 
     def _recurse_seen_goals(self, i, team_marks, seen:set):
         if i in team_marks:
@@ -138,12 +153,18 @@ class Exploration(Board):
                 self._recurse_seen_goals(i, team_marks, seen)
         return seen
 
+class Exploration13(Exploration):
+    """13x13 Exploration board"""
+    base = {84}
+    finals = {0, 12, 156, 168}
+    def __init__(self, generator: "T_GENERATOR", seed) -> None:
+        super().__init__(13, 13, generator, seed)
+
 class GTTOS(Exploration):
     """13x13 board with marks hidden between teams and only adjacent goals displayed.
      
        Left->Right"""
     name="Get To The Other Side"
-    base = {0, 13, 26, 39, 52, 65, 78, 91, 104, 117, 130, 143, 156}
 
     def get_team_view(self, teamId) -> dict: 
         """Double blind marks (No other team marks seen), adjacent goals revealed.
@@ -151,11 +172,17 @@ class GTTOS(Exploration):
         `extras`: List of column indexes (starting 1) of all teams"""
         return {**self._get_base_team_view(teamId), **{"extras": {"gttos_teamCols": None}}}
 
+class GTTOS13(GTTOS):
+    base = {0, 13, 26, 39, 52, 65, 78, 91, 104, 117, 130, 143, 156}
+    finals = {12, 25, 38, 51, 64, 77, 90, 103, 116, 129, 142, 155, 168}
+    def __init__(self, generator: "T_GENERATOR", seed) -> None:
+        super().__init__(13, 13, generator, seed)
+
 ALIASES = {
     "Non-Lockout": Bingo,
     "Lockout": Lockout,
-    "Exploration": Exploration,
-    "GTTOS": GTTOS
+    "Exploration": Exploration13,
+    "GTTOS": GTTOS13
 }
 
 def create_board(boardstr, generator: "T_GENERATOR", seed) -> Board:
