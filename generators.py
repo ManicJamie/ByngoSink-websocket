@@ -32,7 +32,7 @@ class BaseGenerator():
     
     def get(self, seed, n) -> list["T_GOAL"]:
         random.seed(seed)
-        return random.sample(self.goals.values(), n)
+        return random.sample(list(self.goals.values()), n)
 
 class MutexGenerator(BaseGenerator):
     # TODO: switch to using dict exclusion
