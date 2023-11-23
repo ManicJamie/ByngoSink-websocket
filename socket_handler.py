@@ -135,6 +135,7 @@ async def CREATE_TEAM(websocket: DecoratedWebsocket, data):
     team = room.create_team(name, colour)
     team.add_user(user)
     user.teamId = team.id
+    user.spectate = False
 
     await websocket.send_json({"verb": "TEAM_CREATED", "teamId": team.id,
                                "board": room.board.get_team_view(user.teamId), 
