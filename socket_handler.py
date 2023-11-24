@@ -39,12 +39,14 @@ class DecoratedWebsocket(WebSocketServerProtocol):
         self.user.socket = None
         return room
 
-    async def send(self, message):
-        _log.info(f"OUT | {self.remote_address[0]} | {message}")
+    async def send(self, message, suppress_log = False):
+        if not suppress_log: _log.info(f"OUT | {self.remote_address[0]} | {message}")
+        _log.debug(f"OUT | {self.remote_address[0]} | {message}")
         await super().send(message)
     
     async def send_json(self, data: dict):
-        await self.send(json.dumps(data))
+        _log.info(f"OUT | {self.remote_address[0]} | {data.get('verb', None)}: {', '.join(data.keys())}")
+        await self.send(json.dumps(data), suppress_log=True)
 
 rooms: dict[str, Room] = {}
 
