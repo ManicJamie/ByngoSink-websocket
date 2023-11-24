@@ -129,7 +129,7 @@ async def CREATE_TEAM(websocket: DecoratedWebsocket, data):
     if user is None:
         await websocket.send('{"verb": "NOAUTH"}')
         return
-    if user.teamId is not None: # If user is already in team, remove them from this team
+    if user.teamId is not None and user.teamId in room.teams: # If user is already in team, remove them from this team
         room.teams[user.teamId].members.remove(user)
 
     team = room.create_team(name, colour)
@@ -157,7 +157,7 @@ async def JOIN_TEAM(websocket: DecoratedWebsocket, data):
     if team is None:
         await websocket.send('{"verb": "NOTFOUND"}')
         return
-    if user.teamId is not None: # If user is already in team, remove them from this team
+    if user.teamId is not None and user.teamId in room.teams: # If user is already in team, remove them from this team
         room.teams[user.teamId].members.remove(user)
     team.add_user(user)
     user.teamId = team.id
@@ -232,15 +232,24 @@ async def SPECTATE(websocket: DecoratedWebsocket, data):
         await websocket.send('{"verb": "NOAUTH"}')
         return None
     
-    room.spectators.add_user(user)
-    user.spectate = True
-    if user.teamId is not None:
-        room.teams[user.teamId].members.remove(user)
-        user.teamId = None
+    if user.spectate == 0:
+        user.spectate = 1
+        room.spectators.add_user(user)
+        if user.teamId is not None and user.teamId in room.teams:
+            room.teams[user.teamId].members.remove(user)
+        user.teamId = room.spectators.id
+
+        await user.socket.send_json({"verb": "UPDATE", "board": room.board.get_spectator_view(), 
+                            "teamColours": {id:team.colour for id, team in room.teams.items()}})
+    elif user.spectate == 1:
+        user.spectate = 2
+        await user.socket.send_json({"verb": "UPDATE", "board": room.board.get_full_view(), 
+                        "teamColours": {id:team.colour for id, team in room.teams.items()}})
+    else:
+        return # do nothing if already at max spectator level
     
     await room.alert_player_changes()
-    await user.socket.send_json({"verb": "UPDATE", "board": room.board.get_full_view(), 
-                                "teamColours": {id:team.colour for id, team in room.teams.items()}})
+    
 
 HANDLERS = {"LIST": LIST,
             "OPEN": OPEN,

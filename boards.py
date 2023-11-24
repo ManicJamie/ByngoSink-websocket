@@ -24,13 +24,15 @@ class Board():
     def get_team_view(self, teamId) -> dict:
         """Provides a view on the board for a given team."""
         return self.get_full_view()
+    
+    def get_spectator_view(self) -> dict:
+        """Provides the base spectator view (this may not include all goals for some formats)"""
+        return self.get_full_view()
 
     def get_full_view(self) -> dict:
         """Provides a complete view on all goals and marks"""
-        return {"type": self.name, "width": self.width, "height": self.height,
-                "game": self.game, "generatorName": self.generatorName,
-                "goals": {i:g.get_repr() for i, g in enumerate(self.goals)},
-                "marks": {t:list(g) for t, g in self.marks.items()}}
+        return self.get_minimum_view() | {"goals": {i:g.get_repr() for i, g in enumerate(self.goals)},
+                                          "marks": {t:list(g) for t, g in self.marks.items()}}
     
     def can_mark(self, index, teamid):
         """Checked on mark and occasionally as extra board view detail (eg invasion, roguelike)"""
@@ -96,36 +98,46 @@ class Exploration(Board):
                 "game": self.game, "generatorName": self.generatorName,
                 "goals": {i:self.goals[i].get_repr() for i in self.base},
                 "base": list(self.base), "finals": list(self.finals)}
+    
+    def _get_base_team_view(self, teamId) -> dict:
+        """Double blind, adjacent revealed goals"""
+        if teamId is None: return self.get_minimum_view()
+        seen_goals = self._get_seen(teamId)
 
+        return self.get_minimum_view() | {"goals": {i:self.goals[i].get_repr() for i in seen_goals},
+                                          "marks": {teamId:list(self.marks.get(teamId, set()))}}
+
+    def get_team_view(self, teamId) -> dict: 
+        """Double blind marks (No other team marks seen), adjacent goals revealed.
+        
+        `extras`: Currently empty until details of exploration spying are sorted"""
+        return self._get_base_team_view(teamId) | {"extras": {}}
+    
+    def get_spectator_view(self) -> dict:
+        seen_goals = self._get_all_seen()
+        return self.get_minimum_view() | {"goals": {i:self.goals[i].get_repr() for i in seen_goals},
+                                          "marks": {t:list(g) for t, g in self.marks.items()}}
+
+    def can_mark(self, index: int, teamid: str) -> bool:
+        if teamid is None: return False
+        seen = self._get_seen(teamid)
+        if index not in seen: return False
+        else: return True
+        
     def _get_seen(self, teamId):
         team_marks = self.marks.get(teamId, set())
         overall_seen = self.base.copy()
         for i in self.base:
             overall_seen.update(self._recurse_seen_goals(i, team_marks, overall_seen))
         return overall_seen
-
-    def get_team_view(self, teamId) -> dict: 
-        """Double blind marks (No other team marks seen), adjacent goals revealed.
-        
-        `extras`: Currently empty until details of exploration spying are sorted"""
-        return {**self._get_base_team_view(teamId), **{"extras": {}}}
-
-    def _get_base_team_view(self, teamId) -> dict:
-        """Double blind, adjacent revealed goals"""
-        if teamId is None: return self.get_minimum_view()
-        seen_goals = self._get_seen(teamId)
-
-        return {"type": self.name, "width": self.width, "height": self.height,
-                "game": self.game, "generatorName": self.generatorName,
-                "goals": {i:self.goals[i].get_repr() for i in seen_goals},
-                "marks": {teamId:list(self.marks.get(teamId, set()))}}
     
-    def can_mark(self, index: int, teamid: str) -> bool:
-        if teamid is None: return False
-        seen = self._get_seen(teamid)
-        if index not in seen: return False
-        else: return True
-
+    def _get_all_seen(self):
+        all_marks = set().union(*self.marks.values())
+        overall_seen = self.base.copy()
+        for i in self.base:
+            overall_seen.update(self._recurse_seen_goals(i, all_marks, overall_seen))
+        return overall_seen
+    
     def _recurse_seen_goals(self, i, team_marks, seen:set):
         if i in team_marks:
             x = i % 13
@@ -155,11 +167,22 @@ class GTTOS(Exploration):
        Left->Right"""
     name="Get To The Other Side"
 
+    def _get_mark_cols(self):
+        out = {}
+        for teamid, marks in self.marks.items():
+            maxCol = 0
+            for m in marks:
+                col = m % self.width
+                if col > maxCol:
+                    maxCol = col
+            out[teamid] = maxCol
+        return out
+
     def get_team_view(self, teamId) -> dict: 
         """Double blind marks (No other team marks seen), adjacent goals revealed.
         
-        `extras`: List of column indexes (starting 1) of all teams"""
-        return {**self._get_base_team_view(teamId), **{"extras": {"gttos_teamCols": None}}}
+        `extras`: highest marked column for each team"""
+        return self._get_base_team_view(teamId) | {"extras": {"colMarks": self._get_mark_cols()}}
 
 class GTTOS13(GTTOS):
     base = {0, 13, 26, 39, 52, 65, 78, 91, 104, 117, 130, 143, 156}

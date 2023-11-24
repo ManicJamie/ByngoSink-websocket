@@ -37,7 +37,7 @@ class Room():
             self.room = room
             websocket.set_user(self)
             self.teamId = None
-            self.spectate = False
+            self.spectate = 0
 
         def change_socket(self, websocket: "DecoratedWebsocket"):
             self.socket = websocket
@@ -102,11 +102,14 @@ class Room():
             if user.socket is not None:
                 if user.socket.closed: user.socket = None
                 else:
-                    if user.spectate:
-                        await user.socket.send_json({"verb": "UPDATE", "board": self.board.get_full_view(), 
-                                                    "teamColours": {id:team.colour for id, team in self.teams.items()}})
-                    else:
+                    if user.spectate == 0:
                         await user.socket.send_json({"verb": "UPDATE", "board": self.board.get_team_view(user.teamId), 
+                                                    "teamColours": {id:team.colour for id, team in self.teams.items()}})
+                    elif user.spectate == 1:
+                        await user.socket.send_json({"verb": "UPDATE", "board": self.board.get_spectator_view(), 
+                                                    "teamColours": {id:team.colour for id, team in self.teams.items()}})
+                    else: # user.spectate == 2
+                        await user.socket.send_json({"verb": "UPDATE", "board": self.board.get_full_view(), 
                                                     "teamColours": {id:team.colour for id, team in self.teams.items()}})
     
     async def alert_player_changes(self):
