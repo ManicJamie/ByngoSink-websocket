@@ -2,6 +2,7 @@
 
 import os
 from typing import Optional
+from websockets import ConnectionClosedError
 from websockets.server import serve, WebSocketServerProtocol
 import asyncio, json, logging
 import time
@@ -280,17 +281,21 @@ async def process(websocket: DecoratedWebsocket):
     websocket.__class__ = DecoratedWebsocket # Websocket is passed as a WebSocketClientProtocol, but upgraded
     addr = websocket.remote_address[0]
     _log.info(f"CON | {addr}")
-    async for received in websocket:
-        try:
-            _log.info(f"IN  | {addr} | {received}")
-            data = json.loads(received)
-            if data["verb"] not in HANDLERS:
-                _log.warning(f"Bad verb received | {data['verb']}")
-                continue
-            await HANDLERS[data["verb"]](websocket, data)
-        except Exception as e:
-            await websocket.send_json({"verb": "ERROR", "message": f"Server Error: {e.__repr__()}"})
-            _log.error(e, exc_info=True)
+    try:
+        async for received in websocket: 
+            try:
+                _log.info(f"IN  | {addr} | {received}")
+                data = json.loads(received)
+                if data["verb"] not in HANDLERS:
+                    _log.warning(f"Bad verb received | {data['verb']}")
+                    continue
+                await HANDLERS[data["verb"]](websocket, data)
+            except Exception as e:
+                await websocket.send_json({"verb": "ERROR", "message": f"Server Error: {e.__repr__()}"})
+                _log.error(e, exc_info=True)
+    except ConnectionClosedError as e:
+        _log.warn(f"!DIS | {addr}")
+        _log.debug(e, exc_info=True)
     
     _log.info(f"DIS | {addr}")
     exitRoom = websocket.clear_self_from_room()
