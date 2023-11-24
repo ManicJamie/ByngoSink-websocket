@@ -294,7 +294,7 @@ async def process(websocket: DecoratedWebsocket):
                 await websocket.send_json({"verb": "ERROR", "message": f"Server Error: {e.__repr__()}"})
                 _log.error(e, exc_info=True)
     except ConnectionClosedError as e:
-        _log.warn(f"!DIS | {addr}")
+        _log.warning(f"!DIS | {addr}")
         _log.debug(e, exc_info=True)
     
     _log.info(f"DIS | {addr}")
