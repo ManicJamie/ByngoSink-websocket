@@ -31,7 +31,8 @@ class Board():
 
     def get_full_view(self) -> dict:
         """Provides a complete view on all goals and marks"""
-        return self.get_minimum_view() | {"goals": {i:g.get_repr() for i, g in enumerate(self.goals)},
+        return {"type": self.name, "width": self.width, "height": self.height,
+                "game": self.game, "generatorName": self.generatorName} | {"goals": {i:g.get_repr() for i, g in enumerate(self.goals)},
                                           "marks": {t:list(g) for t, g in self.marks.items()}}
     
     def can_mark(self, index, teamid):
