@@ -4,6 +4,15 @@ if TYPE_CHECKING:
     from generators import T_GENERATOR
     from goals import T_GOAL
 
+class Mark():
+    def __init__(self, team, goal, marked: bool) -> None:
+        self.team = team
+        self.goal = goal
+        self.marked = marked
+
+    def get(self) -> dict[str]:
+        return {"team": self.team, "goal": self.goal, "marked": self.marked}
+
 class Board():
     """Basic unbiased board"""
     name = "Board"
@@ -15,6 +24,7 @@ class Board():
         self.seed = seed
         self.goals: list[T_GOAL] = generator.get(seed, w*h)
         self.marks: dict[str, set] = {} # {Teamid : {goals}}
+        self.markHistory: list[Mark] = []
     
     def get_minimum_view(self) -> dict:
         """Provides a minimum amount of data on the board for display (used for unteamed users)"""
@@ -48,7 +58,8 @@ class Board():
             return False
         else: 
             self.marks[teamid].add(index)
-        return True
+            self.markHistory.append(Mark(teamid, index, True))
+            return True
     
     def unmark(self, index, teamid) -> bool:
         if teamid not in self.marks: 
@@ -57,7 +68,8 @@ class Board():
             return False
         else: 
             self.marks[teamid].remove(index)
-        return False
+            self.markHistory.append(Mark(teamid, index, False))
+            return True
 
     def get_dict(self) -> dict:
         return {"type": str(type(self)),

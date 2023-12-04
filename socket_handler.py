@@ -252,7 +252,22 @@ async def SPECTATE(websocket: DecoratedWebsocket, data):
         return # do nothing if already at max spectator level
     
     await room.alert_player_changes()
+
+async def TIMELAPSE(websocket: DecoratedWebsocket, data):
+    room_id = data.get("roomId", None)
+    if room_id not in rooms:
+        await websocket.send('{"verb": "NOTFOUND"}')
+        return None
+    room = rooms.get(room_id)
+    user = room.get_user_by_socket(websocket)
+    if user is None:
+        await websocket.send('{"verb": "NOAUTH"}')
+        return None
     
+    if user.spectate == 0:
+        await user.socket.send_json({"verb": "NOAUTH"})
+    else:
+        await user.socket.send_json({"verb": "TIMELAPSE", "history": room.board.markHistory})
 
 HANDLERS = {"LIST": LIST,
             "OPEN": OPEN,
