@@ -1,8 +1,12 @@
 from typing import TYPE_CHECKING
+from functools import reduce
+
+from generators import T_GENERATOR
 
 if TYPE_CHECKING:
     from generators import T_GENERATOR
     from goals import T_GOAL
+    from rooms import Room
 
 class Mark():
     def __init__(self, team, goal, marked: bool) -> None:
@@ -16,7 +20,7 @@ class Mark():
 class Board():
     """Basic unbiased board"""
     name = "Board"
-    def __init__(self, w, h, generator: "T_GENERATOR", seed: str) -> None:
+    def __init__(self, w, h, generator: "T_GENERATOR", seed: str, room: "Room") -> None:
         self.width = w
         self.height = h
         self.game = generator.game
@@ -25,6 +29,7 @@ class Board():
         self.goals: list[T_GOAL] = generator.get(seed, w*h)
         self.marks: dict[str, set] = {} # {Teamid : {goals}}
         self.markHistory: list[Mark] = []
+        self.room = room
     
     def get_minimum_view(self) -> dict:
         """Provides a minimum amount of data on the board for display (used for unteamed users)"""
@@ -43,7 +48,7 @@ class Board():
         """Provides a complete view on all goals and marks"""
         return {"type": self.name, "width": self.width, "height": self.height,
                 "game": self.game, "generatorName": self.generatorName} | {"goals": {i:g.get_repr() for i, g in enumerate(self.goals)},
-                                          "marks": {t:list(g) for t, g in self.marks.items()}}
+                "marks": {t:list(g) for t, g in self.marks.items()}}
     
     def can_mark(self, index, teamid):
         """Checked on mark and occasionally as extra board view detail (eg invasion, roguelike)"""
@@ -71,18 +76,25 @@ class Board():
             self.markHistory.append(Mark(teamid, index, False))
             return True
 
-    def get_dict(self) -> dict:
-        return {"type": str(type(self)),
-                "width": self.width,
-                "height": self.height,
-                "goals": self.goals,
-                "marks": self.marks}
+class IrregularBoard(Board):
+    """A special board type that supplies shape data alongside the minimum to construct an arbitrary board"""
+    ... #TODO: for roguelike. needs major frontend changes to even begin thinking about for now
+
+class ShowsUnmarkable(Board):
+    """A special board type that gives teams data on goals they are not allowed to mark yet.
+    
+    Must add get_unmarkables as `unmarkables` in `get_team_view`."""
+    def get_unmarkables(self, teamId):
+        unmarkable = set()
+        for i in range(len(self.goals)):
+            if not self.can_mark(i, teamId): unmarkable.add(i)
+        return unmarkable
 
 class Bingo(Board):
     """Alias for 5x5 board"""
     name = "Non-Lockout"
-    def __init__(self, generator: "T_GENERATOR", seed) -> None:
-        super().__init__(5, 5, generator, seed)
+    def __init__(self, generator: "T_GENERATOR", seed, room) -> None:
+        super().__init__(5, 5, generator, seed, room)
     
     """Non-hidden formats, minimum == full""" 
     def get_minimum_view(self) -> dict: return self.get_full_view()
@@ -92,11 +104,77 @@ class Lockout(Bingo):
     """Basic lockout bingo board"""
     name = "Lockout"
     def can_mark(self, index, teamid):
+        team_marks = self.marks.get(teamid, set())
+        if index in team_marks: return True
         allmarked = set().union(*self.marks.values())
         if index in allmarked:
             return False
         else:
             return True
+
+class Invasion(Lockout):
+    """i am in great pain"""
+    name = "Invasion"
+
+    def __init__(self, generator: "T_GENERATOR", seed, room) -> None:
+        self.team1 = None
+        self.team2 = None
+        self.team1_directions = set()
+        self.team2_directions = set()
+        super().__init__(generator, seed, room)
+
+    def mark(self, index, teamid):
+        marked = super().mark(index, teamid)
+        if marked and (self.team1 != teamid and self.team2 != teamid): # set up teams
+            if self.team1 == None:
+                self.team1 = teamid
+            elif self.team2 == None:
+                self.team2 = teamid
+        if marked:
+            x = index % self.width
+            y = index // self.width
+            team_marks = self.marks.get(teamid, set())
+            if len(team_marks) == 1: # First marked goal, set direction
+                if self.team1 == teamid:
+                    team_directions = self.team1_directions
+                elif self.team2 == teamid:
+                    team_directions = self.team2_directions
+                else: raise Exception("Shouldn't be possible")
+            
+                if (x == 0 or x == self.width - 1) and (y == 0 or y == self.height - 1): # is corner
+                    if x == 0 and y == 0:
+                        ...
+
+        return marked
+    
+    def get_row_count(self, index):
+        ...
+
+    def can_mark(self, index, teamid):
+        x = index % self.width
+        y = index // self.width
+        if self.team1 == None: # No goals marked yet, just check if its on a side
+            if x == 0 or x == (self.width - 1) or y == 0 or y == (self.height - 1):
+                return super().can_mark(index, teamid)
+            else: return False
+        elif self.team1 == teamid:
+            ...
+        elif self.team2 == None: # No goals marked yet, check if on opposite side of board
+            ...
+        elif self.team2 == teamid:
+            ...
+        else: return False
+
+
+class Chaos(Bingo):
+    """1v...v1 lockout"""
+    name = "Chaos Lockout"
+
+    def __init__(self, generator: T_GENERATOR, seed, room) -> None:
+        super().__init__(generator, seed, room)
+    
+    ... #TODO:
+
 
 class Exploration(Board):
     """13x13 board with marks hidden between teams and only adjacent goals displayed. 
@@ -171,8 +249,8 @@ class Exploration13(Exploration):
     """13x13 Exploration board"""
     base = {84}
     finals = {0, 12, 156, 168}
-    def __init__(self, generator: "T_GENERATOR", seed) -> None:
-        super().__init__(13, 13, generator, seed)
+    def __init__(self, generator: "T_GENERATOR", seed, room) -> None:
+        super().__init__(13, 13, generator, seed, room)
 
 class GTTOS(Exploration):
     """13x13 board with marks hidden between teams and only adjacent goals displayed.
@@ -200,8 +278,8 @@ class GTTOS(Exploration):
 class GTTOS13(GTTOS):
     base = {0, 13, 26, 39, 52, 65, 78, 91, 104, 117, 130, 143, 156}
     finals = {12, 25, 38, 51, 64, 77, 90, 103, 116, 129, 142, 155, 168}
-    def __init__(self, generator: "T_GENERATOR", seed) -> None:
-        super().__init__(13, 13, generator, seed)
+    def __init__(self, generator: "T_GENERATOR", seed, room) -> None:
+        super().__init__(13, 13, generator, seed, room)
 
 ALIASES = {
     "Non-Lockout": Bingo,
@@ -210,5 +288,5 @@ ALIASES = {
     "GTTOS": GTTOS13
 }
 
-def create_board(boardstr, generator: "T_GENERATOR", seed) -> Board:
-    return ALIASES[boardstr](generator, seed)
+def create_board(boardstr, generator: "T_GENERATOR", seed, room) -> Board:
+    return ALIASES[boardstr](generator, seed, room)

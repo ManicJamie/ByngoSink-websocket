@@ -65,6 +65,10 @@ async def GET_GAMES(websocket: DecoratedWebsocket, data):
     games = list(generators.ALL.keys())
     await websocket.send_json({"verb": "GAMES", "games": games})
 
+async def GET_BOARDS(websocket: DecoratedWebsocket, data):
+    games = list(boards.ALIASES.keys())
+    await websocket.send_json({"verb": "BOARDS", "boards": games})
+
 async def OPEN(websocket: DecoratedWebsocket, data):
     user_name = data["username"]
     room = Room(data["roomName"], data["game"], data["generator"], data["board"], data["seed"])
@@ -278,6 +282,7 @@ HANDLERS = {"LIST": LIST,
             "UNMARK": UNMARK,
             "GET_GENERATORS": GET_GENERATORS,
             "GET_GAMES": GET_GAMES,
+            "GET_BOARDS": GET_BOARDS,
             "CREATE_TEAM": CREATE_TEAM,
             "JOIN_TEAM": JOIN_TEAM,
             "LEAVE_TEAM": LEAVE_TEAM,
