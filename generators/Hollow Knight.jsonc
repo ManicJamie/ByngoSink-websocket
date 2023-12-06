@@ -2489,7 +2489,7 @@
                 }
             },
             "VoidHeart": {
-                "name": "Check Void Heart",
+                "name": "Get the Void Heart check (requires dream nail)", // untranslated, old text "Check Void Heart"
                 "translations": {
                     "jp": "虚無の心の場所をチェックする",
                     "cn": "看黑心",
@@ -2924,7 +2924,7 @@
             },
             "Nail2": {
                 "type": "WeightedGoal",
-                "name": "Nail 2",
+                "name": "Check Nail 2", // untranslated, old text "Nail 2"
                 "weight": 0.55,
                 "translations": {
                     "jp": "釘を2回強化する",
@@ -2934,7 +2934,7 @@
             },
             "Nail3": {
                 "type": "WeightedExclusionGoal",
-                "name": "Nail 3",
+                "name": "Check Nail 3", // untranslated, old text "Nail 3"
                 "exclusions": [
                     "2Ore"
                 ],
@@ -4603,7 +4603,7 @@
                 }
             },
             "VoidHeart": {
-                "name": "Check Void Heart",
+                "name": "Get the Void Heart check (requires dream nail)", // untranslated, old text "Check Void Heart"
                 "translations": {
                     "jp": "虚無の心の場所をチェックする",
                     "cn": "看黑心",
@@ -5038,7 +5038,7 @@
             },
             "Nail2": {
                 "type": "WeightedGoal",
-                "name": "Nail 2",
+                "name": "Check Nail 2", // untranslated, old text "Nail 2"
                 "weight": 0.55,
                 "translations": {
                     "jp": "釘を2回強化する",
@@ -5048,7 +5048,7 @@
             },
             "Nail3": {
                 "type": "WeightedExclusionGoal",
-                "name": "Nail 3",
+                "name": "Check Nail 3", // untranslated, old text "Nail 3"
                 "exclusions": [
                     "2Ore"
                 ],
@@ -6604,7 +6604,7 @@
                 }
             },
             "VoidHeart": {
-                "name": "Check Void Heart",
+                "name": "Get the Void Heart check (requires dream nail)", // untranslated, old text "Check Void Heart"
                 "translations": {
                     "jp": "虚無の心の場所をチェックする",
                     "cn": "看黑心",
