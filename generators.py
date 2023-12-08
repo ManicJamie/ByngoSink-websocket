@@ -35,23 +35,17 @@ class BaseGenerator():
         return random.sample(list(self.goals.values()), n)
 
 class MutexGenerator(BaseGenerator):
-    # TODO: switch to using dict exclusion
     def get(self, seed, n) -> list["T_GOAL"]:
         random.seed(seed)
-        available = list(self.goals.values())
+        available = self.goals.copy()
         sample = []
-        excludes: set[str] = set()
         for i in range(n):
-            while True:
-                choice = random.choice(available)
-                if choice.id in excludes:
-                    available.remove(choice)
-                    continue
-                sample.append(choice)
-                available.remove(choice)
-                if isinstance(choice, ExclusionGoal):
-                    excludes.update(choice.exclusions)
-                break
+            choice_key = random.choice(list(available.keys()))
+            choice = available[choice_key]
+            sample.append(choice)
+            available.pop(choice_key)
+            if isinstance(choice, ExclusionGoal):
+                for e in choice.exclusions: available.pop(e, None)
 
         return sample
     
@@ -60,24 +54,23 @@ class TiebreakerGenerator(BaseGenerator):
         self.tiebreakers: int = generator.get("tiebreakerMax", 0)
         super().__init__(name, generator)
     
-    # TODO: switch to using dict exclusion
     def get(self, seed, n) -> list["T_GOAL"]:
         random.seed(seed)
         sample = []
-        available = list(self.goals.values())
+        available = self.goals.copy()
         tiebreakers = self.tiebreakers
         for i in range(n):
-            while True:
-                choice = random.choice(available)
-                if isinstance(choice, TiebreakerGoal):
-                    if tiebreakers <= 0:
-                        available.remove(choice)
-                        continue
-                    else:
-                        tiebreakers -= 1
-                sample.append(choice)
-                available.remove(choice)
-                break
+            if tiebreakers <= 0:
+                keys = list(available.keys())
+                for gid in keys:
+                    goal = available[gid]
+                    if isinstance(goal, TiebreakerGoal): available.pop(gid)
+            
+            choice_key = random.choice(list(available.keys()))
+            choice = available[choice_key]
+            sample.append(choice)
+            available.pop(choice_key)
+            if isinstance(choice, TiebreakerGoal): tiebreakers -= 1
         
         return sample
 
@@ -85,27 +78,23 @@ class TiebreakerMutexGenerator(TiebreakerGenerator):
     def get(self, seed, n) -> list["T_GOAL"]:
         random.seed(seed)
         sample = []
-        available = list(self.goals.values())
+        available = self.goals.copy()
         tiebreakers = self.tiebreakers
-        excludes: set[str] = set()
         for i in range(n):
-            while True:
-                choice = random.choice(available)
-                if choice.id in excludes:
-                    available.remove(choice)
-                    continue
-                if isinstance(choice, TiebreakerGoal):
-                    if tiebreakers <= 0:
-                        available.remove(choice)
-                        continue
-                    else:
-                        tiebreakers -= 1
-                sample.append(choice)
-                available.remove(choice)
-                if isinstance(choice, ExclusionGoal):
-                    excludes.update(choice.exclusions)
-                break
-        
+            if tiebreakers <= 0:
+                keys = list(available.keys())
+                for gid in keys:
+                    goal = available[gid]
+                    if isinstance(goal, TiebreakerGoal): available.pop(gid)
+            
+            choice_key = random.choice(list(available.keys()))
+            choice = available[choice_key]
+            sample.append(choice)
+            available.pop(choice_key)
+            if isinstance(choice, TiebreakerGoal): tiebreakers -= 1
+            if isinstance(choice, ExclusionGoal):
+                for e in choice.exclusions: available.pop(e, None)
+    
         return sample
 
 #TODO: add weighted generators!
