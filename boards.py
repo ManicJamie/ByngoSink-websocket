@@ -1,8 +1,6 @@
 from typing import TYPE_CHECKING
 from functools import reduce
 
-from generators import T_GENERATOR
-
 if TYPE_CHECKING:
     from generators import T_GENERATOR
     from goals import T_GOAL
@@ -170,7 +168,7 @@ class Chaos(Bingo):
     """1v...v1 lockout"""
     name = "Chaos Lockout"
 
-    def __init__(self, generator: T_GENERATOR, seed, room) -> None:
+    def __init__(self, generator: "T_GENERATOR", seed, room) -> None:
         super().__init__(generator, seed, room)
     
     ... #TODO:
