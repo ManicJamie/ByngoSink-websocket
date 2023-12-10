@@ -65,6 +65,10 @@ async def GET_GAMES(websocket: DecoratedWebsocket, data):
     games = list(generators.ALL.keys())
     await websocket.send_json({"verb": "GAMES", "games": games})
 
+async def GET_BOARDS(websocket: DecoratedWebsocket, data):
+    games = list(boards.ALIASES.keys())
+    await websocket.send_json({"verb": "BOARDS", "boards": games})
+
 async def OPEN(websocket: DecoratedWebsocket, data):
     user_name = data["username"]
     room = Room(data["roomName"], data["game"], data["generator"], data["board"], data["seed"])
@@ -252,7 +256,22 @@ async def SPECTATE(websocket: DecoratedWebsocket, data):
         return # do nothing if already at max spectator level
     
     await room.alert_player_changes()
+
+async def TIMELAPSE(websocket: DecoratedWebsocket, data):
+    room_id = data.get("roomId", None)
+    if room_id not in rooms:
+        await websocket.send('{"verb": "NOTFOUND"}')
+        return None
+    room = rooms.get(room_id)
+    user = room.get_user_by_socket(websocket)
+    if user is None:
+        await websocket.send('{"verb": "NOAUTH"}')
+        return None
     
+    if user.spectate == 0:
+        await user.socket.send_json({"verb": "NOAUTH"})
+    else:
+        await user.socket.send_json({"verb": "TIMELAPSE", "history": room.board.markHistory})
 
 HANDLERS = {"LIST": LIST,
             "OPEN": OPEN,
@@ -263,6 +282,7 @@ HANDLERS = {"LIST": LIST,
             "UNMARK": UNMARK,
             "GET_GENERATORS": GET_GENERATORS,
             "GET_GAMES": GET_GAMES,
+            "GET_BOARDS": GET_BOARDS,
             "CREATE_TEAM": CREATE_TEAM,
             "JOIN_TEAM": JOIN_TEAM,
             "LEAVE_TEAM": LEAVE_TEAM,
