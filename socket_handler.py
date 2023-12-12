@@ -52,7 +52,7 @@ rooms: dict[str, Room] = {}
 
 async def LIST(websocket: DecoratedWebsocket, data):
     roomlist = {rid: {"name": r.name, "game": r.board.game, "board": r.board.name, 
-                      "variant": r.board.generatorName, "count": len(r.users)}
+                      "variant": r.board.generatorName, "count": len(r.connected_users())}
                 for rid, r in rooms.items() if len(r.users) > 0}
     await websocket.send_json({"verb": "LISTED", "list": roomlist})
 
