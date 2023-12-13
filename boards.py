@@ -141,13 +141,13 @@ class Exploration(Board):
     
     def _recurse_seen_goals(self, i, team_marks, seen:set):
         if i in team_marks:
-            x = i % 13
-            y = i // 13
+            x = i % self.width
+            y = i // self.height
             adj_xys = {(x - 1, y), (x + 1, y), (x, y + 1), (x, y - 1)}
             to_check = set()
             for xy in adj_xys:
-                if xy[0] >= 0 and xy[0] <= 12 and xy[1] >= 0 and xy[1] <= 12:
-                    index = xy[1] * 13 + xy[0]
+                if 0 <= xy[0] < self.width and 0 <= xy[1] < self.height:
+                    index = xy[1] * self.width + xy[0]
                     if index not in seen: to_check.add(index)
             to_check.difference_update(seen) # don't check already seen values
             seen.update(to_check)
@@ -161,6 +161,12 @@ class Exploration13(Exploration):
     finals = {0, 12, 156, 168}
     def __init__(self, generator: "T_GENERATOR", seed) -> None:
         super().__init__(13, 13, generator, seed)
+
+class Exploration10(Exploration):
+    base = {44, 45, 54, 55}
+    finals = {0, 9, 90, 99}
+    def __init__(self, generator: "T_GENERATOR", seed) -> None:
+        super().__init__(10, 10, generator, seed)
 
 class GTTOS(Exploration):
     """13x13 board with marks hidden between teams and only adjacent goals displayed.
@@ -195,7 +201,8 @@ ALIASES = {
     "Non-Lockout": Bingo,
     "Lockout": Lockout,
     "Exploration": Exploration13,
-    "GTTOS": GTTOS13
+    "GTTOS": GTTOS13,
+    "Exploration10": Exploration10
 }
 
 def create_board(boardstr, generator: "T_GENERATOR", seed) -> Board:
