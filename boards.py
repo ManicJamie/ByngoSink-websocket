@@ -124,36 +124,30 @@ class Exploration(Board):
         seen = self._get_seen(teamid)
         if index not in seen: return False
         else: return True
+
+    def _get_surrounding(self, index):
+        x = index % self.width
+        y = index // self.height
+        adj_xys = {(x - 1, y), (x + 1, y), (x, y + 1), (x, y - 1)}
+        surrounds = set()
+        for xy in adj_xys:
+            if xy[0] >= 0 and xy[0] < self.width and xy[1] >= 0 and xy[1] < self.height:
+                surrounds.add(xy[1] * self.width + xy[0])
+        return surrounds
         
     def _get_seen(self, teamId):
         team_marks = self.marks.get(teamId, set())
         overall_seen = self.base.copy()
-        for i in self.base:
-            overall_seen.update(self._recurse_seen_goals(i, team_marks, overall_seen))
+        for mark in team_marks:
+            overall_seen.update(self._get_surrounding(mark))
         return overall_seen
     
     def _get_all_seen(self):
         all_marks = set().union(*self.marks.values())
         overall_seen = self.base.copy()
-        for i in self.base:
-            overall_seen.update(self._recurse_seen_goals(i, all_marks, overall_seen))
+        for mark in all_marks:
+            overall_seen.update(self._get_surrounding(mark))
         return overall_seen
-    
-    def _recurse_seen_goals(self, i, team_marks, seen:set):
-        if i in team_marks:
-            x = i % 13
-            y = i // 13
-            adj_xys = {(x - 1, y), (x + 1, y), (x, y + 1), (x, y - 1)}
-            to_check = set()
-            for xy in adj_xys:
-                if xy[0] >= 0 and xy[0] <= 12 and xy[1] >= 0 and xy[1] <= 12:
-                    index = xy[1] * 13 + xy[0]
-                    if index not in seen: to_check.add(index)
-            to_check.difference_update(seen) # don't check already seen values
-            seen.update(to_check)
-            for i in to_check:
-                self._recurse_seen_goals(i, team_marks, seen)
-        return seen
 
 class Exploration13(Exploration):
     """13x13 Exploration board"""
