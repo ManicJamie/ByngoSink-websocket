@@ -2,6 +2,7 @@
     "Normal": {
         "type": "MutexGenerator",
         "languages": {
+            "jp": true,
             "cn": true
         },
         "goals": {
@@ -2489,11 +2490,11 @@
                 }
             },
             "VoidHeart": {
-                "name": "Get the Void Heart check (requires dream nail)", // untranslated, old text "Check Void Heart"
+                "name": "Get the Void Heart check (requires dream nail)", // old text "Check Void Heart"
                 "translations": {
-                    "jp": "虚無の心の場所をチェックする",
-                    "cn": "看黑心",
-                    "pt": "Verifique o local do Coração Vazio"
+                    "jp": "虚無の心の場所をチェックする", //TODO: untranslated
+                    "cn": "看黑心", //TODO: untranslated
+                    "pt": "Verifique o local do Coração Vazio" //TODO: untranslated
                 }
             },
             "BasinGrubs": {
@@ -2924,25 +2925,25 @@
             },
             "Nail2": {
                 "type": "WeightedGoal",
-                "name": "Check Nail 2", // untranslated, old text "Nail 2"
+                "name": "Check Nail 2", // old text "Nail 2"
                 "weight": 0.55,
                 "translations": {
-                    "jp": "釘を2回強化する",
-                    "cn": "2钉",
-                    "pt": "Ferrão 2"
+                    "jp": "釘を2回強化する", //TODO: untranslated
+                    "cn": "2钉", //TODO: untranslated
+                    "pt": "Ferrão 2" //TODO: untranslated
                 }
             },
             "Nail3": {
                 "type": "WeightedExclusionGoal",
-                "name": "Check Nail 3", // untranslated, old text "Nail 3"
+                "name": "Check Nail 3", // old text "Nail 3"
                 "exclusions": [
                     "2Ore"
                 ],
                 "weight": 0.78,
                 "translations": {
-                    "jp": "釘を3回強化する",
-                    "cn": "3钉",
-                    "pt": "Ferrão 3"
+                    "jp": "釘を3回強化する", //TODO: untranslated
+                    "cn": "3钉", //TODO: untranslated
+                    "pt": "Ferrão 3" //TODO: untranslated
                 }
             },
             "NailHut": {
@@ -4603,11 +4604,11 @@
                 }
             },
             "VoidHeart": {
-                "name": "Get the Void Heart check (requires dream nail)", // untranslated, old text "Check Void Heart"
+                "name": "Get the Void Heart check (requires dream nail)", // old text "Check Void Heart"
                 "translations": {
-                    "jp": "虚無の心の場所をチェックする",
-                    "cn": "看黑心",
-                    "pt": "Verifique o local do Coração Vazio"
+                    "jp": "虚無の心の場所をチェックする", //TODO: untranslated
+                    "cn": "看黑心", //TODO: untranslated
+                    "pt": "Verifique o local do Coração Vazio" //TODO: untranslated
                 }
             },
             "BasinGrubs": {
@@ -5038,25 +5039,25 @@
             },
             "Nail2": {
                 "type": "WeightedGoal",
-                "name": "Check Nail 2", // untranslated, old text "Nail 2"
+                "name": "Check Nail 2", // old text "Nail 2"
                 "weight": 0.55,
                 "translations": {
-                    "jp": "釘を2回強化する",
-                    "cn": "2钉",
-                    "pt": "Ferrão 2"
+                    "jp": "釘を2回強化する", //TODO: untranslated
+                    "cn": "2钉", //TODO: untranslated
+                    "pt": "Ferrão 2" //TODO: untranslated
                 }
             },
             "Nail3": {
                 "type": "WeightedExclusionGoal",
-                "name": "Check Nail 3", // untranslated, old text "Nail 3"
+                "name": "Check Nail 3", // old text "Nail 3"
                 "exclusions": [
                     "2Ore"
                 ],
                 "weight": 0.78,
                 "translations": {
-                    "jp": "釘を3回強化する",
-                    "cn": "3钉",
-                    "pt": "Ferrão 3"
+                    "jp": "釘を3回強化する", //TODO: untranslated
+                    "cn": "3钉", //TODO: untranslated
+                    "pt": "Ferrão 3" //TODO: untranslated
                 }
             },
             "NailHut": {
@@ -6604,11 +6605,11 @@
                 }
             },
             "VoidHeart": {
-                "name": "Get the Void Heart check (requires dream nail)", // untranslated, old text "Check Void Heart"
+                "name": "Get the Void Heart check (requires dream nail)", // old text "Check Void Heart"
                 "translations": {
-                    "jp": "虚無の心の場所をチェックする",
-                    "cn": "看黑心",
-                    "pt": "Verifique o local do Coração Vazio"
+                    "jp": "虚無の心の場所をチェックする", //TODO: untranslated
+                    "cn": "看黑心", //TODO: untranslated
+                    "pt": "Verifique o local do Coração Vazio" //TODO: untranslated
                 }
             },
             "BasinGrubs": {
