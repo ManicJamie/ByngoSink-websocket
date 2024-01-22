@@ -83,7 +83,9 @@ class Room():
     
     def generate_board(self, game, generator_str, board_str, seed):
         if (seed == ""): seed = str(random())
-        self.board = create_board(board_str, get_generator(game, generator_str), seed)
+        generator = get_generator(game, generator_str)
+        self.board = create_board(board_str, generator, seed)
+        self.languages = generator.languages
         self.touch()
     
     def create_team(self, name, colour):

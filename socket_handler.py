@@ -82,6 +82,7 @@ async def JOIN(websocket: DecoratedWebsocket, data):
     user_id = room.add_user(data["username"], websocket)
 
     await websocket.send_json({"verb": "JOINED", "userId": user_id, "roomName": room.name, 
+                               "languages": room.languages,
                                "boardMin": room.board.get_minimum_view(), 
                                "teamColours": {id:team.colour for id, team in room.teams.items()}})
     await room.alert_player_changes()
@@ -99,7 +100,7 @@ async def REJOIN(websocket: DecoratedWebsocket, data):
     
     user = room.users[user_id]
     user.change_socket(websocket)
-    await websocket.send_json({"verb": "REJOINED", "roomName": room.name, "boardMin": room.board.get_team_view(user.teamId),
+    await websocket.send_json({"verb": "REJOINED", "roomName": room.name, "languages": room.languages, "boardMin": room.board.get_team_view(user.teamId),
                                 "teamId": user.teamId or "", "teamColours": {id:team.colour for id, team in room.teams.items()}})
     await room.alert_player_changes()
 

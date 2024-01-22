@@ -28,6 +28,7 @@ class BaseGenerator():
         self.goals: dict[str, "T_GOAL"] = {gid:parse_goal(gid, g) for gid, g in generator.get("goals").items()}
         self.count = len(self.goals)
         self.game = generator["game"]
+        self.languages : dict[str, bool] = generator.get("languages", {})
         self.__dict__.update(params)
     
     def get(self, seed, n) -> list["T_GOAL"]:

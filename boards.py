@@ -12,14 +12,18 @@ class Board():
         self.height = h
         self.game = generator.game
         self.generatorName = generator.name
+        self.languages = generator.languages
         self.seed = seed
         self.goals: list[T_GOAL] = generator.get(seed, w*h)
         self.marks: dict[str, set] = {} # {Teamid : {goals}}
     
-    def get_minimum_view(self) -> dict:
-        """Provides a minimum amount of data on the board for display (used for unteamed users)"""
+    def __min_view(self):
         return {"type": self.name, "width": self.width, "height": self.height,
                 "game": self.game, "generatorName": self.generatorName}
+    
+    def get_minimum_view(self) -> dict:
+        """Provides a minimum amount of data on the board for display (used for unteamed users)"""
+        return self.__min_view()
     
     def get_team_view(self, teamId) -> dict:
         """Provides a view on the board for a given team."""
@@ -31,8 +35,7 @@ class Board():
 
     def get_full_view(self) -> dict:
         """Provides a complete view on all goals and marks"""
-        return {"type": self.name, "width": self.width, "height": self.height,
-                "game": self.game, "generatorName": self.generatorName} | {"goals": {i:g.get_repr() for i, g in enumerate(self.goals)},
+        return self.__min_view() | {"goals": {i:g.get_repr() for i, g in enumerate(self.goals)},
                                           "marks": {t:list(g) for t, g in self.marks.items()}}
     
     def can_mark(self, index, teamid):
