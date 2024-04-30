@@ -2,20 +2,22 @@ from typing import Union, TYPE_CHECKING
 
 if TYPE_CHECKING:
     T_GOAL = Union["BaseGoal",
-                    "WeightedGoal",
-                    "ExclusionGoal",
-                    "WeightedExclusionGoal",
-                    "TiebreakerGoal",
-                    "TiebreakerExclusionGoal",
-                    "WeightedTiebreakerExclusionGoal",
-                    "WeightedTiebreakerGoal"]
+                   "WeightedGoal",
+                   "ExclusionGoal",
+                   "WeightedExclusionGoal",
+                   "TiebreakerGoal",
+                   "TiebreakerExclusionGoal",
+                   "WeightedTiebreakerExclusionGoal",
+                   "WeightedTiebreakerGoal"]
 
 def parse_goal(id, goal: dict) -> "T_GOAL":
     typestr = goal.pop("type", None)
+    goalType: type
     if typestr is None:
         # attempt inferral (WARN: WILL NOT CATCH COMPLEX SUBCLASSES, specify type in this case)
         weighted = "weight" in goal.keys()
         exclusion = "exclusions" in goal.keys()
+        
         if weighted and exclusion:
             goalType = WeightedExclusionGoal
         elif weighted:
@@ -25,16 +27,16 @@ def parse_goal(id, goal: dict) -> "T_GOAL":
         else:
             goalType = BaseGoal
     else:
-        goalType: type = globals()[typestr]
+        goalType = globals()[typestr]
     return goalType(id=id, **goal)
 
-#### Goal types
+# Goal types
 
 class BaseGoal():
-    def __init__(self, id, name, translations:dict[str, str]={}, **params) -> None:
+    def __init__(self, id, name, translations: dict[str, str] = {}, **params) -> None:
         self.id = id
         self.name = name
-        self.marks = set()
+        self.marks: set[int] = set()
         self.translations = translations
         self.__dict__.update(params)
     
@@ -57,10 +59,10 @@ class BaseGoal():
 class WeightedGoal(BaseGoal):
     def __init__(self, weight, **params) -> None:
         self.weight = weight
-        super().__init__( **params)
+        super().__init__(**params)
 
 class ExclusionGoal(BaseGoal):
-    def __init__(self, exclusions:set[str]={}, **params) -> None:
+    def __init__(self, exclusions: set[str] = set(), **params) -> None:
         self.exclusions = exclusions
         super().__init__(**params)
 

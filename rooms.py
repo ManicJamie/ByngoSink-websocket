@@ -1,16 +1,14 @@
 from random import random
 from uuid import uuid4
 from time import time
-from collections import deque
-import json, asyncio, logging
+import logging
 
 from boards import create_board
 from generators import get_generator
 
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from generators import T_GENERATOR
     from socket_handler import DecoratedWebsocket
 
 _log = logging.getLogger("byngosink")
@@ -30,14 +28,15 @@ COLOURS = {
 
 class Room():
     class User():
-        def __init__(self, name: str, room, websocket: "DecoratedWebsocket" = None) -> None:
+        def __init__(self, name: str, room, websocket: "DecoratedWebsocket" | None = None) -> None:
             self.id = str(uuid4())
-            self.name = name 
+            self.name = name
             self.socket = websocket
             self.room = room
-            websocket.set_user(self)
             self.teamId = None
             self.spectate = 0
+            if websocket is not None:
+                websocket.set_user(self)
 
         def change_socket(self, websocket: "DecoratedWebsocket"):
             self.socket = websocket
@@ -51,7 +50,7 @@ class Room():
             self.id = str(uuid4())
             self.name = name
             self.colour: str = colour
-            self.members:list[Room.User] = []
+            self.members: list[Room.User] = []
 
         def add_user(self, user): self.members.append(user)
         def remove_user(self, user): self.members.remove(user)
@@ -105,14 +104,14 @@ class Room():
                 if user.socket.closed: user.socket = None
                 else:
                     if user.spectate == 0:
-                        await user.socket.send_json({"verb": "UPDATE", "board": self.board.get_team_view(user.teamId), 
-                                                    "teamColours": {id:team.colour for id, team in self.teams.items()}})
+                        await user.socket.send_json({"verb": "UPDATE", "board": self.board.get_team_view(user.teamId),
+                                                    "teamColours": {id: team.colour for id, team in self.teams.items()}})
                     elif user.spectate == 1:
-                        await user.socket.send_json({"verb": "UPDATE", "board": self.board.get_spectator_view(), 
-                                                    "teamColours": {id:team.colour for id, team in self.teams.items()}})
-                    else: # user.spectate == 2
-                        await user.socket.send_json({"verb": "UPDATE", "board": self.board.get_full_view(), 
-                                                    "teamColours": {id:team.colour for id, team in self.teams.items()}})
+                        await user.socket.send_json({"verb": "UPDATE", "board": self.board.get_spectator_view(),
+                                                    "teamColours": {id: team.colour for id, team in self.teams.items()}})
+                    else:  # user.spectate == 2
+                        await user.socket.send_json({"verb": "UPDATE", "board": self.board.get_full_view(),
+                                                    "teamColours": {id: team.colour for id, team in self.teams.items()}})
     
     async def alert_player_changes(self):
         usersData = [user.view() for user in self.users.values()]
@@ -121,4 +120,4 @@ class Room():
             if user.socket.closed: user.socket = None
             else:
                 await user.socket.send_json({"verb": "MEMBERS", "members": usersData,
-                                                "teams": {id:team.view() for id, team in self.teams.items()}})
+                                             "teams": {id: team.view() for id, team in self.teams.items()}})

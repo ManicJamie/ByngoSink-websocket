@@ -15,7 +15,8 @@ from goals import parse_goal, ExclusionGoal, TiebreakerGoal
 class FixedGenerator():
     def __init__(self, name, generator={}, **params) -> None:
         self.name = name
-        self.goals = generator["goals"] # This is just a list of strings in this case (and this case only)
+        self.goals = generator["goals"]  # This is just a list of strings in this case (and this case only)
+        self.count = len(self.goals)
         self.game = generator["game"]
         self.__dict__.update(params)
     
@@ -23,12 +24,12 @@ class FixedGenerator():
         return self.goals[:n]
 
 class BaseGenerator():
-    def __init__(self, name, generator:dict={}, **params) -> None:
+    def __init__(self, name, generator: dict = {}, **params) -> None:
         self.name = name
-        self.goals: dict[str, "T_GOAL"] = {gid:parse_goal(gid, g) for gid, g in generator.get("goals").items()}
+        self.goals: dict[str, "T_GOAL"] = {gid: parse_goal(gid, g) for gid, g in generator["goals"].items()}
         self.count = len(self.goals)
         self.game = generator["game"]
-        self.languages : dict[str, bool] = generator.get("languages", {})
+        self.languages: dict[str, bool] = generator.get("languages", {})
         self.__dict__.update(params)
     
     def get(self, seed, n) -> list["T_GOAL"]:
@@ -75,7 +76,7 @@ class TiebreakerGenerator(BaseGenerator):
         
         return sample
 
-class TiebreakerMutexGenerator(TiebreakerGenerator):    
+class TiebreakerMutexGenerator(TiebreakerGenerator):
     def get(self, seed, n) -> list["T_GOAL"]:
         random.seed(seed)
         sample = []
@@ -108,9 +109,11 @@ def _create_gen(name, gendict: dict) -> Union[BaseGenerator, FixedGenerator]:
 def get_generator(game_name, gen_name):
     return ALL[game_name][gen_name]
 
+
 ALL: dict[str, dict[str, "T_GENERATOR"]] = {}
+
 for gamepath in os.listdir("generators"):
     if not gamepath.endswith(".jsonc") or gamepath.startswith("_"): continue
     with open(f"generators/{gamepath}", encoding="utf-8") as f:
         game_name = os.path.splitext(gamepath)[0]
-        ALL[game_name] = {name:_create_gen(name, gendict | {"game": game_name}) for name, gendict in jsonc.load(f).items()}
+        ALL[game_name] = {name: _create_gen(name, gendict | {"game": game_name}) for name, gendict in jsonc.load(f).items()}

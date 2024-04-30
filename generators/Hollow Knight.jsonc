@@ -1042,6 +1042,7 @@
     },
     "Item Randomizer": {
         "type": "TiebreakerMutexGenerator",
+        "tiebreakerMax": 1,
         "languages": {
             "jp": true,
             "cn": false,
@@ -5315,6 +5316,7 @@
     },
     "Item Randomizer: Cursed": {
         "type": "TiebreakerMutexGenerator",
+        "tiebreakerMax": 1,
         "languages": {
             "jp": true,
             "cn": false,

@@ -5,11 +5,10 @@ from typing import Optional
 from websockets import ConnectionClosedError
 from websockets.server import serve, WebSocketServerProtocol
 import asyncio, json, logging
-import time
 from datetime import datetime
 import ssl
 
-import generators, boards
+import generators
 from rooms import *
 
 _log = logging.getLogger("byngosink")
@@ -30,16 +29,16 @@ _log.setLevel(logging.INFO)
 
 class DecoratedWebsocket(WebSocketServerProtocol):
     """Provides outbound logging and utility methods"""
-    def set_user(self, user: Room.User = None):
+    def set_user(self, user: Room.User | None):
         self.user = user
     
     def clear_self_from_room(self) -> Optional[Room]:
-        if "user" not in self.__dict__: return None
+        if "user" not in self.__dict__ or self.user is None: return None
         room = self.user.room
         self.user.socket = None
         return room
 
-    async def send(self, message, suppress_log = False):
+    async def send(self, message, suppress_log: bool = False):
         if not suppress_log: _log.info(f"OUT | {self.remote_address[0]} | {message}")
         _log.debug(f"OUT | {self.remote_address[0]} | {message}")
         await super().send(message)
@@ -48,10 +47,11 @@ class DecoratedWebsocket(WebSocketServerProtocol):
         _log.info(f"OUT | {self.remote_address[0]} | {data.get('verb', None)}: {', '.join(data.keys())}")
         await self.send(json.dumps(data), suppress_log=True)
 
+
 rooms: dict[str, Room] = {}
 
 async def LIST(websocket: DecoratedWebsocket, data):
-    roomlist = {rid: {"name": r.name, "game": r.board.game, "board": r.board.name, 
+    roomlist = {rid: {"name": r.name, "game": r.board.game, "board": r.board.name,
                       "variant": r.board.generatorName, "count": len(r.connected_users())}
                 for rid, r in rooms.items() if len(r.users) > 0}
     await websocket.send_json({"verb": "LISTED", "list": roomlist})
@@ -81,10 +81,10 @@ async def JOIN(websocket: DecoratedWebsocket, data):
     room = rooms[room_id]
     user_id = room.add_user(data["username"], websocket)
 
-    await websocket.send_json({"verb": "JOINED", "userId": user_id, "roomName": room.name, 
+    await websocket.send_json({"verb": "JOINED", "userId": user_id, "roomName": room.name,
                                "languages": room.languages,
-                               "boardMin": room.board.get_minimum_view(), 
-                               "teamColours": {id:team.colour for id, team in room.teams.items()}})
+                               "boardMin": room.board.get_minimum_view(),
+                               "teamColours": {id: team.colour for id, team in room.teams.items()}})
     await room.alert_player_changes()
 
 async def REJOIN(websocket: DecoratedWebsocket, data):
@@ -101,7 +101,7 @@ async def REJOIN(websocket: DecoratedWebsocket, data):
     user = room.users[user_id]
     user.change_socket(websocket)
     await websocket.send_json({"verb": "REJOINED", "roomName": room.name, "languages": room.languages, "boardMin": room.board.get_team_view(user.teamId),
-                                "teamId": user.teamId or "", "teamColours": {id:team.colour for id, team in room.teams.items()}})
+                               "teamId": user.teamId or "", "teamColours": {id: team.colour for id, team in room.teams.items()}})
     await room.alert_player_changes()
 
 async def EXIT(websocket: DecoratedWebsocket, data):
@@ -133,7 +133,7 @@ async def CREATE_TEAM(websocket: DecoratedWebsocket, data):
     if user is None:
         await websocket.send('{"verb": "NOAUTH"}')
         return
-    if user.teamId is not None and user.teamId in room.teams: # If user is already in team, remove them from this team
+    if user.teamId is not None and user.teamId in room.teams:  # If user is already in team, remove them from this team
         room.teams[user.teamId].members.remove(user)
 
     team = room.create_team(name, colour)
@@ -142,8 +142,8 @@ async def CREATE_TEAM(websocket: DecoratedWebsocket, data):
     user.spectate = False
 
     await websocket.send_json({"verb": "TEAM_CREATED", "teamId": team.id,
-                               "board": room.board.get_team_view(user.teamId), 
-                               "teamColours": {id:team.colour for id, team in room.teams.items()}})
+                               "board": room.board.get_team_view(user.teamId),
+                               "teamColours": {id: team.colour for id, team in room.teams.items()}})
     await room.alert_player_changes()
 
 async def JOIN_TEAM(websocket: DecoratedWebsocket, data):
@@ -161,13 +161,13 @@ async def JOIN_TEAM(websocket: DecoratedWebsocket, data):
     if team is None:
         await websocket.send('{"verb": "NOTFOUND"}')
         return
-    if user.teamId is not None and user.teamId in room.teams: # If user is already in team, remove them from this team
+    if user.teamId is not None and user.teamId in room.teams:  # If user is already in team, remove them from this team
         room.teams[user.teamId].members.remove(user)
     team.add_user(user)
     user.teamId = team.id
     user.spectate = False
     await websocket.send_json({"verb": "TEAM_JOINED", "board": room.board.get_team_view(user.teamId), "teamId": team.id,
-                               "teamColours": {id:team.colour for id, team in room.teams.items()}})
+                               "teamColours": {id: team.colour for id, team in room.teams.items()}})
     await room.alert_player_changes()
 
 async def LEAVE_TEAM(websocket: DecoratedWebsocket, data):
@@ -227,10 +227,10 @@ async def UNMARK(websocket: DecoratedWebsocket, data):
 
 async def SPECTATE(websocket: DecoratedWebsocket, data):
     room_id = data.get("roomId", None)
-    if room_id not in rooms:
+    room = rooms.get(room_id, None)
+    if room is None:
         await websocket.send('{"verb": "NOTFOUND"}')
         return None
-    room = rooms.get(room_id)
     user = room.get_user_by_socket(websocket)
     if user is None:
         await websocket.send('{"verb": "NOAUTH"}')
@@ -243,14 +243,14 @@ async def SPECTATE(websocket: DecoratedWebsocket, data):
             room.teams[user.teamId].members.remove(user)
         user.teamId = room.spectators.id
 
-        await user.socket.send_json({"verb": "UPDATE", "board": room.board.get_spectator_view(), 
-                            "teamColours": {id:team.colour for id, team in room.teams.items()}})
+        await user.socket.send_json({"verb": "UPDATE", "board": room.board.get_spectator_view(),
+                                     "teamColours": {id: team.colour for id, team in room.teams.items()}})
     elif user.spectate == 1:
         user.spectate = 2
-        await user.socket.send_json({"verb": "UPDATE", "board": room.board.get_full_view(), 
-                        "teamColours": {id:team.colour for id, team in room.teams.items()}})
+        await user.socket.send_json({"verb": "UPDATE", "board": room.board.get_full_view(),
+                                     "teamColours": {id: team.colour for id, team in room.teams.items()}})
     else:
-        return # do nothing if already at max spectator level
+        return  # do nothing if already at max spectator level
     
     await room.alert_player_changes()
     
@@ -280,14 +280,14 @@ async def remove_websocket(websocket: DecoratedWebsocket):
         if update:
             await room.alert_player_changes()
 
-async def process(websocket: DecoratedWebsocket): 
-    websocket.__class__ = DecoratedWebsocket # Websocket is passed as a WebSocketClientProtocol, but upgraded
+async def process(websocket: DecoratedWebsocket):
+    websocket.__class__ = DecoratedWebsocket  # Websocket is passed as a WebSocketClientProtocol, but upgraded
     addr = websocket.remote_address[0]
     _log.info(f"CON | {addr}")
     try:
-        async for received in websocket: 
+        async for received in websocket:
             try:
-                _log.info(f"IN  | {addr} | {received}")
+                _log.info(f"IN  | {addr} | {received!r}")
                 data = json.loads(received)
                 if data["verb"] not in HANDLERS:
                     _log.warning(f"Bad verb received | {data['verb']}")
@@ -308,7 +308,9 @@ CERTS_PATH = "/etc/letsencrypt/live/byngosink-ws.manicjamie.com"
 FULL_CHAIN = f"{CERTS_PATH}/fullchain.pem"
 PRIV_KEY = f"{CERTS_PATH}/privkey.pem"
 
-if os.path.exists(FULL_CHAIN) and os.path.exists(PRIV_KEY): # Do SSL if the certificates exist, otherwise warn
+ssl_context: ssl.SSLContext | None
+
+if os.path.exists(FULL_CHAIN) and os.path.exists(PRIV_KEY):  # Do SSL if the certificates exist, otherwise warn
     ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLSv1_2)
     ssl_context.load_cert_chain(FULL_CHAIN, PRIV_KEY)
 else:
@@ -317,7 +319,7 @@ else:
 
 async def main():
     async with serve(process, "0.0.0.0", 555, ssl=ssl_context):
-        await asyncio.Future() # Run forever
+        await asyncio.Future()  # Run forever
 
 if __name__ == "__main__":
     asyncio.run(main())
