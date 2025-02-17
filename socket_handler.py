@@ -221,9 +221,12 @@ async def UNMARK(websocket: DecoratedWebsocket, data):
     if params is None: return
     user, room, goal_id = params
 
-    room.board.unmark(int(goal_id), user.teamId)
-    await websocket.send_json({"verb": "UNMARKED", "goalId": goal_id})
-    await room.alert_board_changes()
+    # TODO: Communicate failure in e.g. invasion, lockout, etc.
+    if room.board.unmark(int(goal_id), user.teamId):
+        await websocket.send_json({"verb": "UNMARKED", "goalId": goal_id})
+        await room.alert_board_changes()
+    else:
+        await websocket.send_json({"verb": "NOUNMARK", "goalId": goal_id})
 
 async def SPECTATE(websocket: DecoratedWebsocket, data):
     room_id = data.get("roomId", None)

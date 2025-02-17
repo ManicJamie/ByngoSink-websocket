@@ -6,10 +6,11 @@ import logging
 from boards import create_board
 from generators import get_generator
 
-from typing import TYPE_CHECKING
+from typing import Union, TYPE_CHECKING
 
 if TYPE_CHECKING:
     from socket_handler import DecoratedWebsocket
+    T_WEBSOCKET = Union[DecoratedWebsocket, None]
 
 _log = logging.getLogger("byngosink")
 
@@ -28,7 +29,7 @@ COLOURS = {
 
 class Room():
     class User():
-        def __init__(self, name: str, room, websocket: "DecoratedWebsocket" | None = None) -> None:
+        def __init__(self, name: str, room, websocket: "T_WEBSOCKET" = None) -> None:
             self.id = str(uuid4())
             self.name = name
             self.socket = websocket
