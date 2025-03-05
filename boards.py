@@ -26,7 +26,7 @@ class Board():
         return {"type": self.name, "width": self.width, "height": self.height,
                 "maxMarksPerSquare": self.max_marks_per_square(), "game": self.game, "generatorName": self.generatorName}
     
-    def max_marks_per_square(self):
+    def max_marks_per_square(self) -> int:
         return 0  # Infinity
     
     def get_minimum_view(self) -> dict:
@@ -82,18 +82,19 @@ class Board():
 
 class Bingo(Board):
     """Alias for 5x5 board"""
-    name = "Non-Lockout"
-    def __init__(self, generator: "T_GENERATOR", seed) -> None:
-        super().__init__(5, 5, generator, seed)
     
     """Non-hidden formats, minimum == full""" 
     def get_minimum_view(self) -> dict: return self.get_full_view()
     def get_team_view(self, teamId) -> dict: return self.get_full_view()
 
+class Bingo5(Board):
+    name = "Non-Lockout"
+    def __init__(self, generator: "T_GENERATOR", seed) -> None:
+        super().__init__(5, 5, generator, seed)
+
 class Lockout(Bingo):
     """Basic lockout bingo board"""
-    name = "Lockout"
-
+    
     # TODO: Chaos lockout
     def max_marks_per_square(self):
         return 1
@@ -101,6 +102,13 @@ class Lockout(Bingo):
     def can_mark(self, index, teamid):
         marked = set([v for marks in self.marks.values() for v in marks])
         return index not in marked
+
+class Lockout5(Lockout):
+    name = "Lockout"
+    
+    def __init__(self, generator: "T_GENERATOR", seed) -> None:
+        super().__init__(5, 5, generator, seed)
+
 
 INVASION_TOP = 1
 INVASION_LEFT = 2
@@ -110,9 +118,10 @@ INVASION_ALL = frozenset([1, 2, 3, 4])
 
 class Invasion(Lockout):
     """Basic invasion bingo board"""
-    name = "Invasion"
-    def __init__(self, generator: "T_GENERATOR", seed) -> None:
-        super().__init__(generator, seed)
+    def __init__(self, width: int, height: int, generator: "T_GENERATOR", seed) -> None:
+        super().__init__(width, height, generator, seed)
+        self.width = width
+        self.height = height
         self.start_constraints = dict()  # teamId -> invasionStart
 
         self.ranks = dict()  # constraint -> list[set(index)]
@@ -219,7 +228,7 @@ class Invasion(Lockout):
 
         # Unmark is only allowed if the resulting board state is valid.
         # Attempt to regenerate it, and if successful, use the regen.
-        b = Invasion(self.generator, self.seed)
+        b = Invasion(self.width, self.height, self.generator, self.seed)
 
         toplay = set(self.marks[teamid])
         toplay.remove(index)
@@ -238,6 +247,20 @@ class Invasion(Lockout):
     def get_team_view(self, teamId) -> dict: 
         """`extras`: valid next moves"""
         return super().get_team_view(teamId) | {"extras": {"invasionMoves": list(self.valid_moves(teamId).keys())}}
+
+class Invasion5(Invasion):
+    """Standard 5x5 Invasion board."""
+    name = "Invasion"
+    
+    def __init__(self, generator: "T_GENERATOR", seed) -> None:
+        super().__init__(5, 5, generator, seed)
+
+class Invasion13(Invasion):
+    """13x13 version of Invasion board."""
+    name = "Invasion (Large)"
+    
+    def __init__(self, generator: "T_GENERATOR", seed) -> None:
+        super().__init__(13, 13, generator, seed)
 
 class Exploration(Board):
     """13x13 board with marks hidden between teams and only adjacent goals displayed. 
@@ -338,9 +361,10 @@ class GTTOS13(GTTOS):
         super().__init__(13, 13, generator, seed)
 
 ALIASES = {
-    "Non-Lockout": Bingo,
-    "Lockout": Lockout,
-    "Invasion": Invasion,
+    "Non-Lockout": Bingo5,
+    "Lockout": Lockout5,
+    "Invasion": Invasion5,
+    "Invasion (Large)": Invasion13,
     "Exploration": Exploration13,
     "GTTOS": GTTOS13
 }
