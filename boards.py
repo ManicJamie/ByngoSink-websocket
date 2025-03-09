@@ -69,7 +69,7 @@ class Board():
         marks = self.marks[teamid]
         marks.remove(index)
         if not marks:
-            self.marks.remove(teamid)
+            self.marks.pop(teamid)
         return True
 
     def get_dict(self) -> dict:
