@@ -328,7 +328,7 @@ else:
     ssl_context = None
 
 async def main():
-    async with serve(process, "0.0.0.0", 6555, ssl=ssl_context):
+    async with serve(process, "0.0.0.0", 555, ssl=ssl_context):
         await asyncio.Future()  # Run forever
 
 if __name__ == "__main__":
