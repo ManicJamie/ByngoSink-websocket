@@ -122,3 +122,21 @@ class Room():
             else:
                 await user.socket.send_json({"verb": "MEMBERS", "members": usersData,
                                              "teams": {id: team.view() for id, team in self.teams.items()}})
+                
+class FixedRoom(Room):
+    def __init__(self, name, game, board_str, goals) -> None:
+        self.id = str(uuid4())
+        self.name = name
+        self.spectators = Room.Team("spectator", "#FFFFFF")
+        self.teams: dict[str, Room.Team] = {}
+        self.users: dict[str, Room.User] = {}
+        self.generate_board(game, board_str, goals)
+        self.created = int(time())
+        self.touch()
+
+    def generate_board(self, game, board_str, goals):
+        seed = "0"
+        generator = get_generator(game, "Fixed", goals=goals)
+        self.board = create_board(board_str, generator, seed)
+        self.languages = generator.languages
+        self.touch()

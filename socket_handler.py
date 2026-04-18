@@ -73,6 +73,12 @@ async def OPEN(websocket: DecoratedWebsocket, data):
     
     await websocket.send_json({"verb": "OPENED", "roomId": room.id, "userId": user_id})
 
+async def OPEN_FIXED(websocket: DecoratedWebsocket, data):
+    room = FixedRoom(data["roomName"], data["game"], data["board"], data["goals"])
+    rooms[room.id] = room
+
+    await websocket.send_json({"verb": "OPENED_FIXED", "roomId": room.id})
+
 async def JOIN(websocket: DecoratedWebsocket, data):
     room_id = data["roomId"]
     if room_id not in rooms:
@@ -260,6 +266,7 @@ async def SPECTATE(websocket: DecoratedWebsocket, data):
 
 HANDLERS = {"LIST": LIST,
             "OPEN": OPEN,
+            "OPEN_FIXED": OPEN_FIXED,
             "JOIN": JOIN,
             "REJOIN": REJOIN,
             "EXIT": EXIT,
@@ -321,7 +328,7 @@ else:
     ssl_context = None
 
 async def main():
-    async with serve(process, "0.0.0.0", 555, ssl=ssl_context):
+    async with serve(process, "0.0.0.0", 6555, ssl=ssl_context):
         await asyncio.Future()  # Run forever
 
 if __name__ == "__main__":

@@ -360,13 +360,23 @@ class GTTOS13(GTTOS):
     def __init__(self, generator: "T_GENERATOR", seed) -> None:
         super().__init__(13, 13, generator, seed)
 
+class GTTOS10(GTTOS):
+    """
+    10x10 board with marks hidden between teams and only adjacent goals displayed.
+    Left -> Right"""
+    base = {0, 10, 20, 30, 40, 50, 60, 70, 80, 90}
+    finals = {9, 19, 29, 39, 49, 59, 69, 79, 89, 99}
+    def __init__(self, generator: "T_GENERATOR", seed) -> None:
+        super().__init__(10, 10, generator, seed)
+
 ALIASES = {
     "Non-Lockout": Bingo5,
     "Lockout": Lockout5,
     "Invasion": Invasion5,
     "Invasion (Large)": Invasion13,
     "Exploration": Exploration13,
-    "GTTOS": GTTOS13
+    "GTTOS": GTTOS13,
+    "GTTOS10": GTTOS10
 }
 
 def create_board(boardstr, generator: "T_GENERATOR", seed) -> Board:

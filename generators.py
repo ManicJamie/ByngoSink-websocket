@@ -18,10 +18,11 @@ class FixedGenerator():
         self.goals = generator["goals"]  # This is just a list of strings in this case (and this case only)
         self.count = len(self.goals)
         self.game = generator["game"]
+        self.languages = {} # Custom goal lists don't support this I think - abyss
         self.__dict__.update(params)
     
     def get(self, seed, n) -> list["T_GOAL"]:
-        return self.goals[:n]
+        return [parse_goal(g, {"name":g}) for g in self.goals[:n]]
 
 class BaseGenerator():
     def __init__(self, name, generator: dict = {}, **params) -> None:
@@ -106,9 +107,14 @@ def _create_gen(name, gendict: dict) -> Union[BaseGenerator, FixedGenerator]:
     genType: type = globals()[typestr]
     return genType(name, gendict)
 
-def get_generator(game_name, gen_name):
-    return ALL[game_name][gen_name]
-
+def get_generator(game_name, gen_name, goals: list[str] | None = None):
+    if gen_name == "Fixed" and goals is not None:
+        return FixedGenerator(name="Fixed Board", generator={
+                "goals": goals,
+                "game": game_name
+            })
+    else:
+        return ALL[game_name][gen_name]
 
 ALL: dict[str, dict[str, "T_GENERATOR"]] = {}
 
