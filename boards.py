@@ -92,6 +92,12 @@ class Bingo5(Board):
     def __init__(self, generator: "T_GENERATOR", seed) -> None:
         super().__init__(5, 5, generator, seed)
 
+class Bingo6(Board):
+    """6x6 board standard bingo"""
+    name = "Caravan"
+    def __init__(self, generator: "T_GENERATOR", seed) -> None:
+        super().__init__(6, 6, generator, seed)
+
 class Lockout(Bingo):
     """Basic lockout bingo board"""
     
@@ -371,6 +377,7 @@ class GTTOS10(GTTOS):
 
 ALIASES = {
     "Non-Lockout": Bingo5,
+    "Bingo6": Bingo6,
     "Lockout": Lockout5,
     "Invasion": Invasion5,
     "Invasion (Large)": Invasion13,
