@@ -189,6 +189,7 @@ async def LEAVE_TEAM(websocket: DecoratedWebsocket, data):
     for team in room.teams.values():
         if team.id == user.teamId:
             team.members.remove(user)
+            user.teamId = None
             await websocket.send('{"verb": "TEAM_LEFT"}')
             await room.alert_player_changes()
             return
